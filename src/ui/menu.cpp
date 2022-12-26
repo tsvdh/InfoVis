@@ -5,8 +5,12 @@
 #include <imgui.h>
 #include <iostream>
 #include <nfd.h>
+#include <string>
 
 namespace ui {
+
+const std::filesystem::path DATA_PATH = "../resources";
+std::string currentFileName = "FLD File";
 
 Menu::Menu(const glm::ivec2& baseRenderResolution)
     : m_baseRenderResolution(baseRenderResolution)
@@ -95,24 +99,27 @@ void Menu::drawMenu(const glm::ivec2& pos, const glm::ivec2& size, std::chrono::
 void Menu::showLoadVolTab()
 {
     if (ImGui::BeginTabItem("Load")) {
-
-        if (ImGui::Button("Load volume")) {
-            nfdchar_t* pOutPath = nullptr;
-            nfdresult_t result = NFD_OpenDialog("fld", nullptr, &pOutPath);
-
-            if (result == NFD_OKAY) {
-                // Convert from char* to std::filesystem::path
-                std::filesystem::path path = pOutPath;
-                if (m_optLoadVolumeCallback)
-                    (*m_optLoadVolumeCallback)(path);
+        // Create drop-down with all data files
+        if (ImGui::BeginCombo("Volumes", currentFileName.c_str())) {
+            for (const auto &file : std::filesystem::directory_iterator(DATA_PATH)) {
+                const std::filesystem::path &fileName = file.path().filename();
+                bool isSelected = fileName.string() == currentFileName;
+                if (ImGui::Selectable(fileName.string().c_str(), isSelected)) { currentFileName = fileName; }
+                if (isSelected) { ImGui::SetItemDefaultFocus(); }
             }
+            ImGui::EndCombo();
         }
 
-        if (m_volumeLoaded)
-            ImGui::Text("%s", m_volumeInfo.c_str());
-
+        // Create load button
+        if (ImGui::Button("Load volume")) {
+            // Check if an actual file has been selected
+            if (currentFileName != "FLD File" && m_optLoadVolumeCallback) {
+                (*m_optLoadVolumeCallback)(DATA_PATH / currentFileName);
+            }
+        }
         ImGui::EndTabItem();
     }
+    if (m_volumeLoaded) {ImGui::Text("%s", m_volumeInfo.c_str());}
 }
 
 // This renders the RayCast tab, where the user can set the render mode, interpolation mode and other

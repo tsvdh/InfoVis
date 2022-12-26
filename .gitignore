@@ -1,2 +1,7 @@
+# IDE folders
+.vscode
 .vs
+
+# Build and output
+build
 out
