@@ -119,24 +119,52 @@ float Volume::getSampleNearestNeighbourInterpolation(const glm::vec3& coord) con
 // ======= TODO : IMPLEMENT the functions below for tri-linear interpolation ========
 // ======= Consider using the linearInterpolate and biLinearInterpolate functions ===
 // This function returns the trilinear interpolated value at the continuous 3D position given by coord.
-float Volume::getSampleTriLinearInterpolation(const glm::vec3& coord) const
-{
-    return 0.0f;
+float Volume::getSampleTriLinearInterpolation(const glm::vec3& coord) const {
+    // Check if the given coord lies within the volume's bounds
+    if (glm::any(glm::lessThan(coord,           glm::vec3(0.0f))) ||
+        glm::any(glm::greaterThanEqual(coord,   glm::vec3(m_dim)))) { return 0.0f; }
+
+    float depthInterpFactor = coord.z - glm::floor(coord.z);
+    float nearPlaneInterp   = biLinearInterpolate({coord.x, coord.y}, static_cast<int>(glm::floor(coord.z)));
+    float farPlaneInterp    = biLinearInterpolate({coord.x, coord.y}, static_cast<int>(glm::ceil(coord.z)));
+    return linearInterpolate(nearPlaneInterp, farPlaneInterp, depthInterpFactor);
 }
 
 // This function linearly interpolates the value at X using incoming values g0 and g1 given a factor (equal to the positon of x in 1D)
 //
 // g0--X--------g1
 //   factor
-float Volume::linearInterpolate(float g0, float g1, float factor)
-{
-    return 0.0f;
-}
+template <typename T>
+T Volume::linearInterpolate(T g0, T g1, float factor) { return glm::mix(g0, g1, factor); }
 
 // This function bi-linearly interpolates the value at the given continuous 2D XY coordinate for a fixed integer z coordinate.
-float Volume::biLinearInterpolate(const glm::vec2& xyCoord, int z) const
-{
-    return 0.0f;
+float Volume::biLinearInterpolate(const glm::vec2& xyCoord, int z) const {
+    
+    // Get 4 nearest neighbours, clamping outputs of ceil calls since they might result in an out of bounds number
+    int zClamp          = glm::clamp(z, 0, m_dim.z - 1);
+    float bottomLeft    = getVoxel(
+        static_cast<int>(glm::floor(xyCoord.x)),
+        static_cast<int>(glm::floor(xyCoord.y)),
+        zClamp);
+    float bottomRight   = getVoxel(
+        glm::clamp(static_cast<int>(glm::ceil(xyCoord.x)), 0, m_dim.x - 1),
+        static_cast<int>(glm::floor(xyCoord.y)),
+        zClamp);
+    float topLeft       = getVoxel(
+        static_cast<int>(glm::floor(xyCoord.x)),
+        glm::clamp(static_cast<int>(glm::ceil(xyCoord.y)), 0, m_dim.y - 1),
+        zClamp);
+    float topRight      = getVoxel(
+        glm::clamp(static_cast<int>(glm::ceil(xyCoord.x)), 0, m_dim.x - 1),
+        glm::clamp(static_cast<int>(glm::ceil(xyCoord.y)), 0, m_dim.y - 1),
+        zClamp);
+
+    // Interpolate horizontally, then interpolate result vertically
+    float horizontalInterpFactor    = xyCoord.x - glm::floor(xyCoord.x);
+    float verticalInterpFactor      = xyCoord.y - glm::floor(xyCoord.y);
+    float bottomInterp  = linearInterpolate(bottomLeft, bottomRight, horizontalInterpFactor);
+    float topInterp     = linearInterpolate(topLeft, topRight, horizontalInterpFactor);
+    return linearInterpolate(bottomInterp, topInterp, verticalInterpFactor);
 }
 
 
