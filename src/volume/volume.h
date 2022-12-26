@@ -36,8 +36,7 @@ protected:
 
     float getSampleTriLinearInterpolation(const glm::vec3& coord) const;
     float biLinearInterpolate(const glm::vec2& xyCoord, int z) const;
-    template <typename T>
-    static T linearInterpolate(T g0, T g1, float factor);
+    static float linearInterpolate(float g0, float g1, float factor);
 
     float getSampleTriCubicInterpolation(const glm::vec3& coord) const;
     float biCubicInterpolate(const glm::vec2& xyCoord, int z) const;

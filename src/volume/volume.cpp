@@ -134,8 +134,7 @@ float Volume::getSampleTriLinearInterpolation(const glm::vec3& coord) const {
 //
 // g0--X--------g1
 //   factor
-template <typename T>
-T Volume::linearInterpolate(T g0, T g1, float factor) { return glm::mix(g0, g1, factor); }
+float Volume::linearInterpolate(float g0, float g1, float factor) { return glm::mix(g0, g1, factor); }
 
 // This function bi-linearly interpolates the value at the given continuous 2D XY coordinate for a fixed integer z coordinate.
 float Volume::biLinearInterpolate(const glm::vec2& xyCoord, int z) const {
