@@ -2,6 +2,7 @@ target_sources(VolVis
 	PRIVATE
         "${CMAKE_CURRENT_LIST_DIR}/ui/full_screen_texture_gl.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/ui/gl_error.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/ui/lights_editor.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/ui/menu.cpp" 
 		"${CMAKE_CURRENT_LIST_DIR}/ui/opengl.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/ui/trackball.cpp"

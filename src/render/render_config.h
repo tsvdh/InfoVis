@@ -1,8 +1,10 @@
 #pragma once
+#include "point_light.h"
 #include <array>
 #include <glm/vec2.hpp>
 #include <glm/vec4.hpp>
 #include <cstring> // memcmp  // macOS change TH
+#include <vector>
 
 namespace render {
 
@@ -18,7 +20,10 @@ struct RenderConfig {
     RenderMode renderMode { RenderMode::RenderSlicer };
     glm::ivec2 renderResolution;
 
+    // Lighting
     bool volumeShading { false };
+    std::vector<std::reference_wrapper<const PointLight>> sceneLights;
+
     float isoValue { 95.0f };
 
     // 1D transfer function.

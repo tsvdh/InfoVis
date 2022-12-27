@@ -54,11 +54,13 @@ void Menu::setBaseRenderResolution(const glm::ivec2& baseRenderResolution)
 //  and set the menu volume information
 void Menu::setLoadedVolume(const volume::Volume& volume, const volume::GradientVolume& gradientVolume)
 {
-    m_tfWidget = TransferFunctionWidget(volume);
-    m_tf2DWidget = TransferFunction2DWidget(volume, gradientVolume);
+    m_tfWidget      = TransferFunctionWidget(volume);
+    m_tf2DWidget    = TransferFunction2DWidget(volume, gradientVolume);
+    m_leWidget      = LightEditorWidget(volume);
 
     m_tfWidget->updateRenderConfig(m_renderConfig);
     m_tf2DWidget->updateRenderConfig(m_renderConfig);
+    m_leWidget->updateRenderConfig(m_renderConfig);
 
     const glm::ivec3 dim = volume.dims();
     m_volumeInfo = fmt::format("Volume info:\n{}\nDimensions: ({}, {}, {})\nVoxel value range: {} - {}\n",
@@ -84,6 +86,7 @@ void Menu::drawMenu(const glm::ivec2& pos, const glm::ivec2& size, std::chrono::
         showRayCastTab(renderTime);
         showTransFuncTab();
         show2DTransFuncTab();
+        showLightEditorTab();
 
         if (m_renderConfig != renderConfigBefore)
             callRenderConfigChangedCallback();
@@ -181,6 +184,15 @@ void Menu::show2DTransFuncTab()
     if (ImGui::BeginTabItem("2D transfer function")) {
         m_tf2DWidget->draw();
         m_tf2DWidget->updateRenderConfig(m_renderConfig);
+        ImGui::EndTabItem();
+    }
+}
+
+// This renders the Lights Editor Widget
+void Menu::showLightEditorTab() {
+    if (ImGui::BeginTabItem("Lights")) {
+        m_leWidget->draw();
+        m_leWidget->updateRenderConfig(m_renderConfig);
         ImGui::EndTabItem();
     }
 }
