@@ -44,14 +44,18 @@ protected:
     glm::vec4 traceRayComposite(const Ray& ray, float sampleStep) const;
     glm::vec4 traceRayTF2D(const Ray& ray, float sampleStep) const;
 
-    float bisectionAccuracy(const Ray& ray, float t0, float t1, float isoValue) const;
+    float bisectionAccuracy(const Ray& ray, float t0, float t1, float isoValue,
+                            float epsilon = 0.01f, uint32_t iterLimit = 100U) const;
+
+    template <typename T>
+    static T fastExponentiation(T base, uint32_t power);
 
     static glm::vec3 computePhongShading(const glm::vec3& color, const volume::GradientVoxel& gradient,
                                          const glm::vec3& lightDirection, const glm::vec3& viewDirection,
                                          const glm::vec3& kA = glm::vec3(0.1f),
                                          const glm::vec3& kD = glm::vec3(0.7f),
                                          const glm::vec3& kS = glm::vec3(0.2f),
-                                         float specularPower = 100.0f);
+                                         uint32_t specularPower = 100U);
 
 private:
     void resizeImage(const glm::ivec2& resolution);
