@@ -9,6 +9,7 @@
 #include <tbb/blocked_range2d.h>
 #include <tbb/parallel_for.h>
 #include <tuple>
+#include <stdexcept>
 
 namespace render {
 
@@ -187,7 +188,8 @@ glm::vec4 Renderer::traceRayISO(const Ray& ray, float sampleStep) const
             glm::vec3 finalPos  = ray.origin + (refinedT * ray.direction);
 
             // Compute final colour value
-            if (m_config.volumeShading) {
+            if (m_config.shadingMode == ShadingMode::ShadingNone) { return glm::vec4(isoColor, 1.0f); }
+            else { 
                 const volume::GradientVoxel &localGradient  = m_pGradientVolume->getGradientInterpolate(finalPos);
                 glm::vec3 viewDirection                     = finalPos - m_pCamera->position();
                 glm::vec3 finalColor                        = glm::vec3(0.0f);
@@ -197,17 +199,17 @@ glm::vec4 Renderer::traceRayISO(const Ray& ray, float sampleStep) const
                 for (size_t lightIdx = 0; lightIdx < m_config.numLights; lightIdx++) {
                     const PointLight &light =   *(m_config.sceneLights[lightIdx]);
                     lightDirection          =   finalPos - light.pos;
-                    finalColor              +=  computeGoochShading(isoColor, localGradient, lightDirection, viewDirection,
-                                                                    light.val, light.val, light.val);
+                    finalColor              +=  computeShading(isoColor, localGradient, lightDirection, viewDirection,
+                                                               light.val, light.val, light.val);
                 }
 
                 // Add camera light if enabled
-                if (m_config.includeCameraLight) { finalColor += computeGoochShading(isoColor, localGradient, viewDirection, viewDirection); }
+                if (m_config.includeCameraLight) { finalColor += computeShading(isoColor, localGradient, viewDirection, viewDirection); }
 
                 // Clamp and return
                 finalColor = glm::clamp(finalColor, glm::vec3(0.0f), glm::vec3(1.0f));
                 return glm::vec4(finalColor, 1.0f);
-            } else { return glm::vec4(isoColor, 1.0f); }
+            }
         }
     }
 
@@ -306,6 +308,22 @@ glm::vec3 Renderer::computeGoochShading(const glm::vec3& color, const volume::Gr
                           glm::vec3(0.0f);
 
     return diffuse + specular;
+}
+
+glm::vec3 Renderer::computeShading(const glm::vec3& color, const volume::GradientVoxel& gradient,
+                                   const glm::vec3& lightDirection, const glm::vec3& viewDirection,
+                                   const glm::vec3& kA, const glm::vec3& kD,
+                                   const glm::vec3& kS, uint32_t specularPower) const {
+    switch (m_config.shadingMode) {
+        case ShadingMode::ShadingNone:
+            return color;
+        case ShadingMode::ShadingPhong:
+            return computePhongShading(color, gradient, lightDirection, viewDirection, kA, kD, kS, specularPower);
+        case ShadingMode::ShadingGooch:
+            return computeGoochShading(color, gradient, lightDirection, viewDirection, kA, kD, kS, specularPower);
+        default:
+            throw std::invalid_argument("Shading enum does not match any registered values");
+    }
 }
 
 // ======= TODO: IMPLEMENT ========

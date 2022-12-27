@@ -125,6 +125,15 @@ void Menu::showLoadVolTab()
     if (m_volumeLoaded) {ImGui::Text("%s", m_volumeInfo.c_str());}
 }
 
+// This renders the options for configuring Gooch shading
+void Menu::showGoochOptions() {
+    ImGui::Text("Gooch shading coefficients");
+    ImGui::SliderFloat("kBlue",         &m_renderConfig.blueCoeff,          0.0f, 1.0f);
+    ImGui::SliderFloat("kYellow",       &m_renderConfig.yellowCoeff,        0.0f, 1.0f);
+    ImGui::SliderFloat("Cool Diffuse",  &m_renderConfig.coolDiffuseCoeff,   0.0f, 1.0f);
+    ImGui::SliderFloat("Warm Diffuse",  &m_renderConfig.warmDiffuseCoeff,   0.0f, 1.0f);
+}
+
 // This renders the RayCast tab, where the user can set the render mode, interpolation mode and other
 //  render-related settings
 void Menu::showRayCastTab(std::chrono::duration<double> renderTime)
@@ -144,10 +153,17 @@ void Menu::showRayCastTab(std::chrono::duration<double> renderTime)
         ImGui::RadioButton("2D Transfer Function", pRenderModeInt, int(render::RenderMode::RenderTF2D));
 
         ImGui::NewLine();
+        ImGui::Separator();
 
-        ImGui::Checkbox("Volume Shading", &m_renderConfig.volumeShading);
+        int* pShadingModeInt = reinterpret_cast<int*>(&m_renderConfig.shadingMode);
+        ImGui::Text("Shading:");
+        ImGui::RadioButton("None", pShadingModeInt, int(render::ShadingMode::ShadingNone));
+        ImGui::RadioButton("Phong", pShadingModeInt, int(render::ShadingMode::ShadingPhong));
+        ImGui::RadioButton("Gooch", pShadingModeInt, int(render::ShadingMode::ShadingGooch));
+        if (m_renderConfig.shadingMode == render::ShadingMode::ShadingGooch) { showGoochOptions(); }
 
         ImGui::NewLine();
+        ImGui::Separator();
 
         ImGui::DragFloat("Iso Value", &m_renderConfig.isoValue, 0.1f, 0.0f, float(m_volumeMax));
 

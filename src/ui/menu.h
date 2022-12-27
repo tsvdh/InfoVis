@@ -38,6 +38,7 @@ public:
 
 private:
     void showLoadVolTab();
+    void showGoochOptions();
     void showRayCastTab(std::chrono::duration<double> renderTime);
     void showTransFuncTab();
     void show2DTransFuncTab();

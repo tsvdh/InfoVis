@@ -17,8 +17,15 @@ enum class RenderMode {
     RenderTF2D
 };
 
+enum class ShadingMode {
+    ShadingNone,
+    ShadingPhong,
+    ShadingGooch
+};
+
 struct RenderConfig {
     RenderMode renderMode { RenderMode::RenderSlicer };
+    ShadingMode shadingMode { ShadingMode::ShadingNone };
     glm::ivec2 renderResolution;
 
     // Lighting
