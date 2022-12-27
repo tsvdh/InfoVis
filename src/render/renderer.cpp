@@ -197,12 +197,12 @@ glm::vec4 Renderer::traceRayISO(const Ray& ray, float sampleStep) const
                 for (size_t lightIdx = 0; lightIdx < m_config.numLights; lightIdx++) {
                     const PointLight &light =   *(m_config.sceneLights[lightIdx]);
                     lightDirection          =   finalPos - light.pos;
-                    finalColor              +=  computePhongShading(isoColor, localGradient, lightDirection, viewDirection,
+                    finalColor              +=  computeGoochShading(isoColor, localGradient, lightDirection, viewDirection,
                                                                     light.val, light.val, light.val);
                 }
 
                 // Add camera light if enabled
-                if (m_config.includeCameraLight) { finalColor += computePhongShading(isoColor, localGradient, viewDirection, viewDirection); }
+                if (m_config.includeCameraLight) { finalColor += computeGoochShading(isoColor, localGradient, viewDirection, viewDirection); }
 
                 // Clamp and return
                 finalColor = glm::clamp(finalColor, glm::vec3(0.0f), glm::vec3(1.0f));
@@ -277,6 +277,35 @@ glm::vec3 Renderer::computePhongShading(const glm::vec3& color, const volume::Gr
                           glm::vec3(0.0f);
 
     return ambient + diffuse + specular;
+}
+
+glm::vec3 Renderer::computeGoochShading(const glm::vec3& color, const volume::GradientVoxel& gradient,
+                                        const glm::vec3& lightDirection, const glm::vec3& viewDirection,
+                                        const glm::vec3& kA, const glm::vec3& kD,
+                                        const glm::vec3& kS, uint32_t specularPower) const {
+    // Construct equation terms
+    glm::vec3 kBlue     = glm::vec3(0.0f, 0.0f, m_config.blueCoeff);
+    glm::vec3 kYellow   = glm::vec3(m_config.yellowCoeff, m_config.yellowCoeff, 0.0f);
+    glm::vec3 kCool     = kBlue + (m_config.coolDiffuseCoeff * color);
+    glm::vec3 kWarm     = kYellow + (m_config.warmDiffuseCoeff * color);
+
+    // Normalise the given vectors
+    glm::vec3 normL     = glm::normalize(lightDirection);
+    glm::vec3 normN     = gradient.dir / gradient.magnitude;
+    float diffuseDot    = glm::dot(normL, normN);
+    glm::vec3 normV     = glm::normalize(viewDirection);
+    glm::vec3 normR     = 2.0f * diffuseDot * normN - normL;
+
+    // Compute Gooch diffuse and Phong specular (account for negative values in Phong specular ONLY) 
+    glm::vec3 diffuse   = ((1.0f + diffuseDot) / 2.0f) * kCool +
+                          (1.0f - ((1.0f + diffuseDot) / 2)) * kWarm;
+    diffuse            *= kD;
+    float specularDot   = glm::dot(normR, normV);
+    glm::vec3 specular  = (diffuseDot > 0.0f && specularDot > 0.0f)         ?
+                          kS * fastExponentiation(specularDot, specularPower) * color :
+                          glm::vec3(0.0f);
+
+    return diffuse + specular;
 }
 
 // ======= TODO: IMPLEMENT ========

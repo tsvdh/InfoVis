@@ -57,6 +57,13 @@ protected:
                                          const glm::vec3& kS = glm::vec3(0.2f),
                                          uint32_t specularPower = 100U);
 
+    glm::vec3 computeGoochShading(const glm::vec3& color, const volume::GradientVoxel& gradient,
+                                  const glm::vec3& lightDirection, const glm::vec3& viewDirection,
+                                  const glm::vec3& kA = glm::vec3(0.1f),
+                                  const glm::vec3& kD = glm::vec3(0.7f),
+                                  const glm::vec3& kS = glm::vec3(0.2f),
+                                  uint32_t specularPower = 100U) const;
+
 private:
     void resizeImage(const glm::ivec2& resolution);
     void resetImage();

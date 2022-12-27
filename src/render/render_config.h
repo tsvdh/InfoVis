@@ -27,6 +27,12 @@ struct RenderConfig {
     std::array<const PointLight*, MAX_LIGHTS> sceneLights;
     size_t numLights { 0U };
 
+    // Gooch shading
+    float blueCoeff { 0.4f };
+    float yellowCoeff { 0.4f };
+    float coolDiffuseCoeff { 0.2f };
+    float warmDiffuseCoeff { 0.6f };
+
     float isoValue { 95.0f };
 
     // 1D transfer function.
