@@ -22,6 +22,7 @@ struct RenderConfig {
 
     // Lighting
     bool volumeShading { false };
+    bool includeCameraLight { true };
     std::vector<std::reference_wrapper<const PointLight>> sceneLights;
 
     float isoValue { 95.0f };

@@ -190,8 +190,22 @@ glm::vec4 Renderer::traceRayISO(const Ray& ray, float sampleStep) const
             if (m_config.volumeShading) {
                 const volume::GradientVoxel &localGradient  = m_pGradientVolume->getGradientInterpolate(finalPos);
                 glm::vec3 viewDirection                     = finalPos - m_pCamera->position();
-                glm::vec3 phongRes                          = computePhongShading(isoColor, localGradient, viewDirection, viewDirection);
-                return glm::vec4(phongRes, 1.0f);
+                glm::vec3 finalColor                        = glm::vec3(0.0f);
+
+                // Accumulate lighting from all sources
+                glm::vec3 lightDirection;
+                for (const PointLight &light : m_config.sceneLights) {
+                    lightDirection  =   finalPos - light.pos;
+                    finalColor      +=  computePhongShading(isoColor, localGradient, lightDirection, viewDirection,
+                                                           light.val, light.val, light.val);
+                }
+
+                // Add camera light if enabled
+                if (m_config.includeCameraLight) { finalColor += computePhongShading(isoColor, localGradient, viewDirection, viewDirection); }
+
+                // Clamp and return
+                finalColor = glm::clamp(finalColor, glm::vec3(0.0f), glm::vec3(1.0f));
+                return glm::vec4(finalColor, 1.0f);
             } else { return glm::vec4(isoColor, 1.0f); }
         }
     }

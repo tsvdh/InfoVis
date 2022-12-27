@@ -9,8 +9,6 @@
 
 namespace ui {
 
-constexpr float DIM_MARGIN = 50;
-
 class LightEditorWidget {
 public:
     LightEditorWidget(const volume::Volume& volume);
@@ -22,6 +20,7 @@ private:
     std::vector<render::PointLight> sceneLights;
     glm::vec3 maxExtent;
     int32_t selectedLight;
+    bool includeCameraLight;
 };
 }
 

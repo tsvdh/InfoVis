@@ -4,14 +4,19 @@
 #include <glm/gtc/type_ptr.hpp>
 
 ui::LightEditorWidget::LightEditorWidget(const volume::Volume& volume)
-    : maxExtent(volume.dims() + glm::ivec3(DIM_MARGIN))
+    : maxExtent(volume.dims())
     , selectedLight(0)
+    , includeCameraLight(true)
 {
     // One default light
     sceneLights.push_back(render::PointLight {glm::vec3(0.0f), glm::vec3(1.0f)});
 }
 
 void ui::LightEditorWidget::draw() {
+    // Enable / disable controls
+    ImGui::Checkbox("Include Camera Light", &includeCameraLight);
+    ImGui::NewLine();
+
     // Add / remove controls
     if (ImGui::Button("Add")) { sceneLights.push_back(render::PointLight {glm::vec3(0.0f), glm::vec3(1.0f)}); }
     if (ImGui::Button("Remove selected")) { 
@@ -22,6 +27,7 @@ void ui::LightEditorWidget::draw() {
             selectedLight = 0U;
         }
     }
+    ImGui::NewLine();
 
     // Selection controls
     std::vector<std::string> options;
@@ -35,13 +41,17 @@ void ui::LightEditorWidget::draw() {
     if (sceneLights.size() > 0) {
         ImGui::SliderFloat3("Position",
                           glm::value_ptr(sceneLights[selectedLight].pos),
-                          -DIM_MARGIN,
+                          0.0f,
                           std::max({maxExtent.x, maxExtent.y, maxExtent.z}));
         ImGui::ColorEdit3("Color", glm::value_ptr(sceneLights[selectedLight].val));
     }
 }
 
 void ui::LightEditorWidget::updateRenderConfig(render::RenderConfig& renderConfig) const {
+    // Toggle(s)
+    renderConfig.includeCameraLight = includeCameraLight;
+    
+    // Light source management
     renderConfig.sceneLights.clear();
     for (const render::PointLight &currentLight : sceneLights) {
         renderConfig.sceneLights.push_back(currentLight);
