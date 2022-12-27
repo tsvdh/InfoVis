@@ -176,7 +176,22 @@ glm::vec4 Renderer::traceRayMIP(const Ray& ray, float sampleStep) const
 glm::vec4 Renderer::traceRayISO(const Ray& ray, float sampleStep) const
 {
     static constexpr glm::vec3 isoColor { 0.8f, 0.8f, 0.2f };
-    return glm::vec4(isoColor, 1.0f);
+
+    glm::vec3 samplePos = ray.origin + ray.tmin * ray.direction;
+    const glm::vec3 increment = sampleStep * ray.direction;
+    for (float t = ray.tmin; t <= ray.tmax; t += sampleStep, samplePos += increment) {
+        const float val = m_pVolume->getSampleInterpolate(samplePos);
+        if (val >= m_config.isoValue) {
+            if (m_config.volumeShading) {
+                const volume::GradientVoxel &localGradient  = m_pGradientVolume->getGradientInterpolate(samplePos);
+                glm::vec3 viewDirection                     = m_pCamera->position() - samplePos;
+                glm::vec3 phongRes                          = computePhongShading(isoColor, localGradient, viewDirection, viewDirection);
+                return glm::vec4(phongRes, 1.0f);
+            } else { return glm::vec4(isoColor, 1.0f); }
+        }
+    }
+
+    return glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 }
 
 // ======= TODO: IMPLEMENT ========
@@ -195,9 +210,22 @@ float Renderer::bisectionAccuracy(const Ray& ray, float t0, float t1, float isoV
 //
 // Use the given color for the ambient/specular/diffuse (you are allowed to scale these constants by a scalar value).
 // You are free to choose any specular power that you'd like.
-glm::vec3 Renderer::computePhongShading(const glm::vec3& color, const volume::GradientVoxel& gradient, const glm::vec3& L, const glm::vec3& V)
-{
-    return glm::vec3(0.0f);
+glm::vec3 Renderer::computePhongShading(const glm::vec3& color, const volume::GradientVoxel& gradient,
+                                        const glm::vec3& lightDirection, const glm::vec3& viewDirection,
+                                        const glm::vec3& kA, const glm::vec3& kD,
+                                        const glm::vec3& kS, float specularPower) {
+    // Normalise the given vectors
+    // TODO: Skip some of these steps if results look visually consistent without normalisation (i.e. parameters are already normalised)
+    glm::vec3 normL = glm::normalize(lightDirection);
+    glm::vec3 normN = glm::normalize(gradient.dir); // This one in particular
+    glm::vec3 normV = glm::normalize(viewDirection);
+    glm::vec3 normR = 2.0f * glm::dot(normL, normN) * normN - normL;
+    
+    // Compute Phong terms
+    glm::vec3 ambient   = kA * color;
+    glm::vec3 diffuse   = kD * glm::dot(normL, normN) * color;
+    glm::vec3 specular  = kS * glm::pow(glm::dot(normR, normV), specularPower) * color;
+    return ambient + diffuse + specular;
 }
 
 // ======= TODO: IMPLEMENT ========

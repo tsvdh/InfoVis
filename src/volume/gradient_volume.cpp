@@ -115,15 +115,49 @@ GradientVoxel GradientVolume::getGradientNearestNeighbor(const glm::vec3& coord)
 // Use the linearInterpolate function that you implemented below.
 GradientVoxel GradientVolume::getGradientLinearInterpolate(const glm::vec3& coord) const
 {
-    return GradientVoxel {};
+    // Check if the given coord lies within the volume's bounds
+    if (glm::any(glm::lessThan(coord,           glm::vec3(0.0f))) ||
+        glm::any(glm::greaterThanEqual(coord,   glm::vec3(m_dim)))) { return { glm::vec3(0), 0.0f }; }
+
+    float depthInterpFactor         = coord.z - glm::floor(coord.z);
+    GradientVoxel nearPlaneInterp   = biLinearInterpolate({coord.x, coord.y}, static_cast<int>(glm::floor(coord.z)));
+    GradientVoxel farPlaneInterp    = biLinearInterpolate({coord.x, coord.y}, static_cast<int>(glm::ceil(coord.z)));
+    return linearInterpolate(nearPlaneInterp, farPlaneInterp, depthInterpFactor);
+}
+
+GradientVoxel GradientVolume::biLinearInterpolate(const glm::vec2 &xyCoord, int z) const {
+    // Get 4 nearest neighbours, clamping outputs of ceil calls since they might result in an out of bounds number
+    int zClamp          = glm::clamp(z, 0, m_dim.z - 1);
+    const GradientVoxel &bottomLeft     = getGradient(
+        static_cast<int>(glm::floor(xyCoord.x)),
+        static_cast<int>(glm::floor(xyCoord.y)),
+        zClamp);
+    const GradientVoxel &bottomRight    = getGradient(
+        glm::clamp(static_cast<int>(glm::ceil(xyCoord.x)), 0, m_dim.x - 1),
+        static_cast<int>(glm::floor(xyCoord.y)),
+        zClamp);
+    const GradientVoxel &topLeft        = getGradient(
+        static_cast<int>(glm::floor(xyCoord.x)),
+        glm::clamp(static_cast<int>(glm::ceil(xyCoord.y)), 0, m_dim.y - 1),
+        zClamp);
+    const GradientVoxel &topRight       = getGradient(
+        glm::clamp(static_cast<int>(glm::ceil(xyCoord.x)), 0, m_dim.x - 1),
+        glm::clamp(static_cast<int>(glm::ceil(xyCoord.y)), 0, m_dim.y - 1),
+        zClamp);
+
+    // Interpolate horizontally, then interpolate result vertically
+    float horizontalInterpFactor    = xyCoord.x - glm::floor(xyCoord.x);
+    float verticalInterpFactor      = xyCoord.y - glm::floor(xyCoord.y);
+    GradientVoxel bottomInterp  = linearInterpolate(bottomLeft, bottomRight, horizontalInterpFactor);
+    GradientVoxel topInterp     = linearInterpolate(topLeft, topRight, horizontalInterpFactor);
+    return linearInterpolate(bottomInterp, topInterp, verticalInterpFactor);
 }
 
 // ======= TODO : IMPLEMENT ========
 // This function should linearly interpolates the value from g0 to g1 given the factor (t).
 // At t=0, linearInterpolate should return g0 and at t=1 it returns g1.
-GradientVoxel GradientVolume::linearInterpolate(const GradientVoxel& g0, const GradientVoxel& g1, float factor)
-{
-    return GradientVoxel {};
+GradientVoxel GradientVolume::linearInterpolate(const GradientVoxel& g0, const GradientVoxel& g1, float factor) {
+    return { glm::mix(g0.dir, g1.dir, factor), glm::mix(g0.magnitude, g1.magnitude, factor) };
 }
 
 // This function returns a gradientVoxel without using interpolation
