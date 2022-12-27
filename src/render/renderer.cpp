@@ -182,9 +182,10 @@ glm::vec4 Renderer::traceRayISO(const Ray& ray, float sampleStep) const
     for (float t = ray.tmin; t <= ray.tmax; t += sampleStep, samplePos += increment) {
         const float val = m_pVolume->getSampleInterpolate(samplePos);
         if (val >= m_config.isoValue) {
+            // Compute final colour value
             if (m_config.volumeShading) {
                 const volume::GradientVoxel &localGradient  = m_pGradientVolume->getGradientInterpolate(samplePos);
-                glm::vec3 viewDirection                     = m_pCamera->position() - samplePos;
+                glm::vec3 viewDirection                     = samplePos - m_pCamera->position();
                 glm::vec3 phongRes                          = computePhongShading(isoColor, localGradient, viewDirection, viewDirection);
                 return glm::vec4(phongRes, 1.0f);
             } else { return glm::vec4(isoColor, 1.0f); }
@@ -217,14 +218,19 @@ glm::vec3 Renderer::computePhongShading(const glm::vec3& color, const volume::Gr
     // Normalise the given vectors
     // TODO: Skip some of these steps if results look visually consistent without normalisation (i.e. parameters are already normalised)
     glm::vec3 normL = glm::normalize(lightDirection);
-    glm::vec3 normN = glm::normalize(gradient.dir); // This one in particular
+    glm::vec3 normN = gradient.dir / gradient.magnitude;
     glm::vec3 normV = glm::normalize(viewDirection);
     glm::vec3 normR = 2.0f * glm::dot(normL, normN) * normN - normL;
     
-    // Compute Phong terms
+    // Compute Phong terms, accounting for negative values
     glm::vec3 ambient   = kA * color;
-    glm::vec3 diffuse   = kD * glm::dot(normL, normN) * color;
-    glm::vec3 specular  = kS * glm::pow(glm::dot(normR, normV), specularPower) * color;
+    float diffuseDot    = glm::dot(normL, normN);
+    glm::vec3 diffuse   = diffuseDot > 0.0f ? kD * diffuseDot * color : glm::vec3(0.0f);
+    float specularDot   = glm::dot(normR, normV);
+    glm::vec3 specular  = (diffuseDot > 0.0f && specularDot > 0.0f)         ?
+                          kS * glm::pow(specularDot, specularPower) * color :
+                          glm::vec3(0.0f);
+
     return ambient + diffuse + specular;
 }
 

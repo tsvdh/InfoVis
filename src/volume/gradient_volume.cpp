@@ -113,8 +113,7 @@ GradientVoxel GradientVolume::getGradientNearestNeighbor(const glm::vec3& coord)
 // ======= TODO : IMPLEMENT ========
 // Returns the trilinearly interpolated gradinet at the given coordinate.
 // Use the linearInterpolate function that you implemented below.
-GradientVoxel GradientVolume::getGradientLinearInterpolate(const glm::vec3& coord) const
-{
+GradientVoxel GradientVolume::getGradientLinearInterpolate(const glm::vec3& coord) const {
     // Check if the given coord lies within the volume's bounds
     if (glm::any(glm::lessThan(coord,           glm::vec3(0.0f))) ||
         glm::any(glm::greaterThanEqual(coord,   glm::vec3(m_dim)))) { return { glm::vec3(0), 0.0f }; }
