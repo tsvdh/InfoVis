@@ -5,14 +5,6 @@ project(GLViewer)
 # https://github.com/lefticus/cpp_starter_project/
 include("cmake/CompilerWarnings.cmake") # Enable almost all compiler warnings and CMake option to enable -Werror.
 
-# Download vcpkg and use it to install the dependencies unless vcpkg is already installed.
-#if (NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-#	include("cmake/pmm.cmake")
-#	pmm(DEBUG VCPKG
-#		REVISION c4937039b0704c711dff11ffa729f1c105b20e42
-#		REQUIRES glfw3 glew glm ms-gsl imgui nativefiledialog tbb fmt catch2)
-#endif()
-
 find_package(OpenGL REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(GLEW REQUIRED)
@@ -62,3 +54,6 @@ add_subdirectory("integrity_tests")
 if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/grading/")
 	add_subdirectory("grading")
 endif()
+
+# Preprocessor definitions for path
+target_compile_definitions(VolVis PUBLIC "-DRESOURCES_DIR=\"${CMAKE_CURRENT_LIST_DIR}/resources/\"")

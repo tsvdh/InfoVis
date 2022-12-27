@@ -9,7 +9,7 @@
 
 namespace ui {
 
-const std::filesystem::path DATA_PATH = "../resources";
+const std::filesystem::path DATA_PATH = RESOURCES_DIR;
 std::string currentFileName = "FLD File";
 
 Menu::Menu(const glm::ivec2& baseRenderResolution)

@@ -11,12 +11,6 @@ target_sources(VolVis
 		"${CMAKE_CURRENT_LIST_DIR}/ui/surface_cube.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/ui/wireframe_cube.cpp"
 
-		#"${CMAKE_CURRENT_LIST_DIR}/imgui/imgui.cpp"
-		#"${CMAKE_CURRENT_LIST_DIR}/imgui/imgui_draw.cpp"
-		#"${CMAKE_CURRENT_LIST_DIR}/imgui/imgui_widgets.cpp"
-		#"${CMAKE_CURRENT_LIST_DIR}/imgui/imgui_impl_glfw.cpp"
-		#"${CMAKE_CURRENT_LIST_DIR}/imgui/imgui_impl_opengl3.cpp"
-
 		"${CMAKE_CURRENT_LIST_DIR}/render/renderer.cpp"
 
 		"${CMAKE_CURRENT_LIST_DIR}/volume/volume.cpp" 
