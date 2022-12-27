@@ -205,11 +205,10 @@ glm::vec4 Renderer::traceRayISO(const Ray& ray, float sampleStep) const
 // iterations such that it does not get stuck in degerate cases.
 float Renderer::bisectionAccuracy(const Ray& ray, float t0, float t1, float isoValue,
                                   float epsilon, uint32_t iterLimit) const {
-    float bestGuess         = t1;
-    glm::vec3 bestGuessPos  = ray.origin + (bestGuess * ray.direction);
-    float bestGuessValue    = m_pVolume->getSampleInterpolate(bestGuessPos);
-    uint32_t currentIter    = 0U;
-    
+    float bestGuess;
+    glm::vec3 bestGuessPos;
+    float bestGuessValue;
+    uint32_t currentIter = 0U;
     while (currentIter++ < iterLimit) {
         // Compute new guess
         bestGuess       = (t0 + t1) / 2.0f;
@@ -227,9 +226,13 @@ float Renderer::bisectionAccuracy(const Ray& ray, float t0, float t1, float isoV
 
 template <typename T>
 T Renderer::fastExponentiation(T base, uint32_t power) {
-    T originalBase = base;
-    for (uint32_t currentPower = 0; currentPower < power; currentPower++) { base *= originalBase; }
-    return base;
+    T res = 1;
+    while (power) {
+        if (power & 1) { res *= base; }
+        power = power >> 1;
+        base *= base;
+    }
+    return res;
 }
 
 // ======= TODO: IMPLEMENT ========
