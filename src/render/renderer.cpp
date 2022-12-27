@@ -283,6 +283,13 @@ glm::vec3 Renderer::computeGoochShading(const glm::vec3& color, const volume::Gr
                                         const glm::vec3& lightDirection, const glm::vec3& viewDirection,
                                         const glm::vec3& kA, const glm::vec3& kD,
                                         const glm::vec3& kS, uint32_t specularPower) const {
+    // If gradient is within a certain fraction of the maximum gradient in the volume
+    // classify point as edge and render as black
+    // TODO: Improve as project goes on; this could be *very* nice
+    if ((gradient.magnitude / m_pGradientVolume->maxMagnitude()) > m_config.edgeClassificationThreshold) {
+        return glm::vec3(0.0f);
+    }
+    
     // Construct equation terms
     glm::vec3 kBlue     = glm::vec3(0.0f, 0.0f, m_config.blueCoeff);
     glm::vec3 kYellow   = glm::vec3(m_config.yellowCoeff, m_config.yellowCoeff, 0.0f);

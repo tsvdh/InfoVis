@@ -135,10 +135,11 @@ void Menu::showIsoOptions() {
 // This renders the options for configuring Gooch shading
 void Menu::showGoochOptions() {
     ImGui::Text("Gooch shading coefficients");
-    ImGui::SliderFloat("kBlue",         &m_renderConfig.blueCoeff,          0.0f, 1.0f);
-    ImGui::SliderFloat("kYellow",       &m_renderConfig.yellowCoeff,        0.0f, 1.0f);
-    ImGui::SliderFloat("Cool Diffuse",  &m_renderConfig.coolDiffuseCoeff,   0.0f, 1.0f);
-    ImGui::SliderFloat("Warm Diffuse",  &m_renderConfig.warmDiffuseCoeff,   0.0f, 1.0f);
+    ImGui::SliderFloat("kBlue",             &m_renderConfig.blueCoeff,                      0.0f, 1.0f);
+    ImGui::SliderFloat("kYellow",           &m_renderConfig.yellowCoeff,                    0.0f, 1.0f);
+    ImGui::SliderFloat("Cool Diffuse",      &m_renderConfig.coolDiffuseCoeff,               0.0f, 1.0f);
+    ImGui::SliderFloat("Warm Diffuse",      &m_renderConfig.warmDiffuseCoeff,               0.0f, 1.0f);
+    ImGui::SliderFloat("Edge Threshold",    &m_renderConfig.edgeClassificationThreshold,    0.0f, 1.0f);
 }
 
 // This renders the RayCast tab, where the user can set the render mode, interpolation mode and other

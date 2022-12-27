@@ -39,6 +39,7 @@ struct RenderConfig {
     float yellowCoeff { 0.4f };
     float coolDiffuseCoeff { 0.2f };
     float warmDiffuseCoeff { 0.6f };
+    float edgeClassificationThreshold { 0.85f };
 
     // ISO rendering
     float isoValue { 95.0f };
