@@ -21,6 +21,7 @@ public:
 private:
     std::vector<render::PointLight> sceneLights;
     glm::vec3 maxExtent;
+    int32_t selectedLight;
 };
 }
 
