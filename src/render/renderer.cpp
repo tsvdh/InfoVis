@@ -176,8 +176,6 @@ glm::vec4 Renderer::traceRayMIP(const Ray& ray, float sampleStep) const
 // Use the bisectionAccuracy function (to be implemented) to get a more precise isosurface location between two steps.
 glm::vec4 Renderer::traceRayISO(const Ray& ray, float sampleStep) const
 {
-    static constexpr glm::vec3 isoColor { 0.8f, 0.8f, 0.2f };
-
     glm::vec3 samplePos = ray.origin + ray.tmin * ray.direction;
     const glm::vec3 increment = sampleStep * ray.direction;
     for (float t = ray.tmin; t <= ray.tmax; t += sampleStep, samplePos += increment) {
@@ -188,7 +186,7 @@ glm::vec4 Renderer::traceRayISO(const Ray& ray, float sampleStep) const
             glm::vec3 finalPos  = ray.origin + (refinedT * ray.direction);
 
             // Compute final colour value
-            if (m_config.shadingMode == ShadingMode::ShadingNone) { return glm::vec4(isoColor, 1.0f); }
+            if (m_config.shadingMode == ShadingMode::ShadingNone) { return glm::vec4(m_config.isoColor, 1.0f); }
             else { 
                 const volume::GradientVoxel &localGradient  = m_pGradientVolume->getGradientInterpolate(finalPos);
                 glm::vec3 viewDirection                     = finalPos - m_pCamera->position();
@@ -199,12 +197,12 @@ glm::vec4 Renderer::traceRayISO(const Ray& ray, float sampleStep) const
                 for (size_t lightIdx = 0; lightIdx < m_config.numLights; lightIdx++) {
                     const PointLight &light =   *(m_config.sceneLights[lightIdx]);
                     lightDirection          =   finalPos - light.pos;
-                    finalColor              +=  computeShading(isoColor, localGradient, lightDirection, viewDirection,
+                    finalColor              +=  computeShading(m_config.isoColor, localGradient, lightDirection, viewDirection,
                                                                light.val, light.val, light.val);
                 }
 
                 // Add camera light if enabled
-                if (m_config.includeCameraLight) { finalColor += computeShading(isoColor, localGradient, viewDirection, viewDirection); }
+                if (m_config.includeCameraLight) { finalColor += computeShading(m_config.isoColor, localGradient, viewDirection, viewDirection); }
 
                 // Clamp and return
                 finalColor = glm::clamp(finalColor, glm::vec3(0.0f), glm::vec3(1.0f));

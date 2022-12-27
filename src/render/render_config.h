@@ -40,7 +40,9 @@ struct RenderConfig {
     float coolDiffuseCoeff { 0.2f };
     float warmDiffuseCoeff { 0.6f };
 
+    // ISO rendering
     float isoValue { 95.0f };
+    glm::vec3 isoColor { 0.8f, 0.8f, 0.2f };
 
     // 1D transfer function.
     std::array<glm::vec4, 256> tfColorMap;

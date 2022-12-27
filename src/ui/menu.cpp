@@ -6,6 +6,7 @@
 #include <iostream>
 #include <nfd.h>
 #include <string>
+#include <glm/gtc/type_ptr.hpp>
 
 namespace ui {
 
@@ -125,6 +126,12 @@ void Menu::showLoadVolTab()
     if (m_volumeLoaded) {ImGui::Text("%s", m_volumeInfo.c_str());}
 }
 
+void Menu::showIsoOptions() {
+    ImGui::Text("Iso shading parameters");
+    ImGui::ColorEdit3("Iso Colour", glm::value_ptr(m_renderConfig.isoColor));
+    ImGui::DragFloat("Iso Value", &m_renderConfig.isoValue, 0.1f, 0.0f, float(m_volumeMax));
+}
+
 // This renders the options for configuring Gooch shading
 void Menu::showGoochOptions() {
     ImGui::Text("Gooch shading coefficients");
@@ -153,6 +160,10 @@ void Menu::showRayCastTab(std::chrono::duration<double> renderTime)
         ImGui::RadioButton("2D Transfer Function", pRenderModeInt, int(render::RenderMode::RenderTF2D));
 
         ImGui::NewLine();
+
+        if (m_renderConfig.renderMode == render::RenderMode::RenderIso) { showIsoOptions(); }
+
+        ImGui::NewLine();
         ImGui::Separator();
 
         int* pShadingModeInt = reinterpret_cast<int*>(&m_renderConfig.shadingMode);
@@ -164,10 +175,6 @@ void Menu::showRayCastTab(std::chrono::duration<double> renderTime)
 
         ImGui::NewLine();
         ImGui::Separator();
-
-        ImGui::DragFloat("Iso Value", &m_renderConfig.isoValue, 0.1f, 0.0f, float(m_volumeMax));
-
-        ImGui::NewLine();
 
         ImGui::DragFloat("Resolution scale", &m_resolutionScale, 0.0025f, 0.25f, 2.0f);
         m_renderConfig.renderResolution = glm::ivec2(glm::vec2(m_baseRenderResolution) * m_resolutionScale);
