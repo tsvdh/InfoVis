@@ -134,33 +134,30 @@ float Volume::getSampleTriLinearInterpolation(const glm::vec3& coord) const {
 //
 // g0--X--------g1
 //   factor
-float Volume::linearInterpolate(float g0, float g1, float factor) { return glm::mix(g0, g1, factor); }
+float Volume::linearInterpolate(float g0, float g1, float factor) { return (g1 * factor) + (g0 * (1.0f - factor)); }
 
 // This function bi-linearly interpolates the value at the given continuous 2D XY coordinate for a fixed integer z coordinate.
 float Volume::biLinearInterpolate(const glm::vec2& xyCoord, int z) const {
-    
-    // Get 4 nearest neighbours, clamping outputs of ceil calls since they might result in an out of bounds number
-    int zClamp          = glm::clamp(z, 0, m_dim.z - 1);
-    float bottomLeft    = getVoxel(
-        static_cast<int>(glm::floor(xyCoord.x)),
-        static_cast<int>(glm::floor(xyCoord.y)),
-        zClamp);
-    float bottomRight   = getVoxel(
-        glm::clamp(static_cast<int>(glm::ceil(xyCoord.x)), 0, m_dim.x - 1),
-        static_cast<int>(glm::floor(xyCoord.y)),
-        zClamp);
-    float topLeft       = getVoxel(
-        static_cast<int>(glm::floor(xyCoord.x)),
-        glm::clamp(static_cast<int>(glm::ceil(xyCoord.y)), 0, m_dim.y - 1),
-        zClamp);
-    float topRight      = getVoxel(
-        glm::clamp(static_cast<int>(glm::ceil(xyCoord.x)), 0, m_dim.x - 1),
-        glm::clamp(static_cast<int>(glm::ceil(xyCoord.y)), 0, m_dim.y - 1),
-        zClamp);
+    // Precompute floor calls
+    int xFloor = static_cast<int>(glm::floor(xyCoord.x));
+    int yFloor = static_cast<int>(glm::floor(xyCoord.y));
+
+    // Clamp outputs of ceil calls since they might result in an out of bounds number
+    int xCeilClamp  = static_cast<int>(glm::ceil(xyCoord.x));
+    xCeilClamp      = xCeilClamp >= m_dim.x ? m_dim.x - 1 : xCeilClamp;
+    int yCeilClamp  = static_cast<int>(glm::ceil(xyCoord.y));
+    yCeilClamp      = yCeilClamp >= m_dim.y ? m_dim.y - 1 : yCeilClamp;
+    int zClamp      = z >= m_dim.z ? m_dim.z - 1 : z;
+
+    // Get 4 nearest neighbours
+    float bottomLeft    = getVoxel(xFloor, yFloor, zClamp);
+    float bottomRight   = getVoxel(xCeilClamp, yFloor, zClamp);
+    float topLeft       = getVoxel(xFloor, yCeilClamp, zClamp);
+    float topRight      = getVoxel(xCeilClamp, yCeilClamp, zClamp);
 
     // Interpolate horizontally, then interpolate result vertically
-    float horizontalInterpFactor    = xyCoord.x - glm::floor(xyCoord.x);
-    float verticalInterpFactor      = xyCoord.y - glm::floor(xyCoord.y);
+    float horizontalInterpFactor    = xyCoord.x - static_cast<float>(xFloor);
+    float verticalInterpFactor      = xyCoord.y - static_cast<float>(yFloor);
     float bottomInterp  = linearInterpolate(bottomLeft, bottomRight, horizontalInterpFactor);
     float topInterp     = linearInterpolate(topLeft, topRight, horizontalInterpFactor);
     return linearInterpolate(bottomInterp, topInterp, verticalInterpFactor);

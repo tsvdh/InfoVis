@@ -205,7 +205,7 @@ glm::vec4 Renderer::traceRayISO(const Ray& ray, float sampleStep) const
 // iterations such that it does not get stuck in degerate cases.
 float Renderer::bisectionAccuracy(const Ray& ray, float t0, float t1, float isoValue,
                                   float epsilon, uint32_t iterLimit) const {
-    float bestGuess;
+    float bestGuess = t1;
     glm::vec3 bestGuessPos;
     float bestGuessValue;
     uint32_t currentIter = 0U;
