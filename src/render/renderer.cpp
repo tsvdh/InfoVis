@@ -194,10 +194,11 @@ glm::vec4 Renderer::traceRayISO(const Ray& ray, float sampleStep) const
 
                 // Accumulate lighting from all sources
                 glm::vec3 lightDirection;
-                for (const PointLight &light : m_config.sceneLights) {
-                    lightDirection  =   finalPos - light.pos;
-                    finalColor      +=  computePhongShading(isoColor, localGradient, lightDirection, viewDirection,
-                                                           light.val, light.val, light.val);
+                for (size_t lightIdx = 0; lightIdx < m_config.numLights; lightIdx++) {
+                    const PointLight &light =   *(m_config.sceneLights[lightIdx]);
+                    lightDirection          =   finalPos - light.pos;
+                    finalColor              +=  computePhongShading(isoColor, localGradient, lightDirection, viewDirection,
+                                                                    light.val, light.val, light.val);
                 }
 
                 // Add camera light if enabled

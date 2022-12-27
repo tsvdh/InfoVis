@@ -18,7 +18,9 @@ void ui::LightEditorWidget::draw() {
     ImGui::NewLine();
 
     // Add / remove controls
-    if (ImGui::Button("Add")) { sceneLights.push_back(render::PointLight {glm::vec3(0.0f), glm::vec3(1.0f)}); }
+    if (ImGui::Button("Add")) { 
+        if (sceneLights.size() < render::MAX_LIGHTS) {sceneLights.push_back(render::PointLight {glm::vec3(0.0f), glm::vec3(1.0f)});}
+    }
     if (ImGui::Button("Remove selected")) { 
         if (selectedLight < sceneLights.size()) {
             std::vector<render::PointLight>::iterator iterator = sceneLights.begin();
@@ -52,8 +54,11 @@ void ui::LightEditorWidget::updateRenderConfig(render::RenderConfig& renderConfi
     renderConfig.includeCameraLight = includeCameraLight;
     
     // Light source management
-    renderConfig.sceneLights.clear();
-    for (const render::PointLight &currentLight : sceneLights) {
-        renderConfig.sceneLights.push_back(currentLight);
-    }
+    if (renderConfig.numLights != sceneLights.size()) {
+        for (size_t lightIdx = 0; lightIdx < sceneLights.size(); lightIdx++) {
+            const render::PointLight* lightPtr  = sceneLights.data() + lightIdx;
+            renderConfig.sceneLights[lightIdx]  = lightPtr;
+        }
+        renderConfig.numLights = sceneLights.size();
+    }   
 }

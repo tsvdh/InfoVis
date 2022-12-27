@@ -4,9 +4,10 @@
 #include <glm/vec2.hpp>
 #include <glm/vec4.hpp>
 #include <cstring> // memcmp  // macOS change TH
-#include <vector>
 
 namespace render {
+
+constexpr size_t MAX_LIGHTS = 25;
 
 enum class RenderMode {
     RenderSlicer,
@@ -23,7 +24,8 @@ struct RenderConfig {
     // Lighting
     bool volumeShading { false };
     bool includeCameraLight { true };
-    std::vector<std::reference_wrapper<const PointLight>> sceneLights;
+    std::array<const PointLight*, MAX_LIGHTS> sceneLights;
+    size_t numLights { 0U };
 
     float isoValue { 95.0f };
 
