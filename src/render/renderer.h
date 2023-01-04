@@ -13,8 +13,11 @@
 #include <memory>
 #include <tuple>
 #include <vector>
+#include <optional>
 
 namespace render {
+
+enum OutOfBoundsStrategy { ZERO, NEAREST_NEIGHBOUR };
 
 union Bounds {
     struct {
@@ -49,6 +52,7 @@ protected:
 
     template <typename T>
     static T fastExponentiation(T base, uint32_t power);
+    inline static float rgbaToGreyscale(const glm::vec4 &rgba);
 
     static glm::vec3 computePhongShading(const glm::vec3& color, const volume::GradientVoxel& gradient,
                                          const glm::vec3& lightDirection, const glm::vec3& viewDirection,
@@ -78,6 +82,8 @@ private:
 
     bool instersectRayVolumeBounds(Ray& ray, const Bounds& volumeBounds) const;
     void fillColor(int x, int y, const glm::vec4& color);
+    void setOpacity(int x, int y, float alpha);
+    std::optional<std::reference_wrapper<glm::vec4>> getColor(int x, int y, OutOfBoundsStrategy strat = ZERO);
 
 protected:
     const volume::Volume* m_pVolume;

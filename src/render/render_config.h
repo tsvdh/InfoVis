@@ -41,6 +41,10 @@ struct RenderConfig {
     float warmDiffuseCoeff { 0.6f };
     float edgeClassificationThreshold { 0.85f };
 
+    // Edge detection
+    bool edgeDetection { false };
+    float edgeThreshold { 1.0f };
+
     // ISO rendering
     float isoValue { 95.0f };
     glm::vec3 isoColor { 0.8f, 0.8f, 0.2f };

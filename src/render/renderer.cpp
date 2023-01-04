@@ -10,6 +10,7 @@
 #include <tbb/parallel_for.h>
 #include <tuple>
 #include <stdexcept>
+#include <cmath>
 
 namespace render {
 
@@ -134,6 +135,50 @@ void Renderer::render()
             }
         }
 #endif
+
+    // Edge detection and coloring black
+    if (m_config.edgeDetection) {
+        float xSobelCoeffs[] { 1.0f, 0.0f, -1.0f, 2.0f, 0.0f, -2.0f, 1.0f, 0.0f, -1.0f };
+        float ySobelCoeffs[] { 1.0f, 2.0f, 1.0f, 0.0f, 0.0f, 0.0f, -1.0f, -2.0f, -1.0f };
+
+        #if PARALLELISM == 0
+    // Regular (single threaded) for loops.
+    for (int x = 0; x < m_config.renderResolution.x; x++) {
+        for (int y = 0; y < m_config.renderResolution.y; y++) {
+#else
+    // Parallel for loop (in 2 dimensions) that subdivides the screen into tiles.
+        tbb::parallel_for(screenRange, [&](tbb::blocked_range2d<int> localRange) {
+        // Loop over the pixels in a tile. This function is called on multiple threads at the same time.
+        for (int32_t y = std::begin(localRange.rows()); y != std::end(localRange.rows()); y++) {
+            for (int32_t x = std::begin(localRange.cols()); x != std::end(localRange.cols()); x++) {
+#endif
+            // Compute gradient approximation
+            float gradient              = 0.0f;
+            uint8_t sobelCoeffCounter   = 0U;
+            for (int32_t dy = y - 1; dy <= y + 1; dy++) {
+                for (int32_t dx = x - 1; dx <= x + 1; dx++, sobelCoeffCounter++) {
+                    auto maybeColor = getColor(dx, dy, ZERO);
+                    if (!maybeColor.has_value()) { continue; }
+
+                    float greyscale = rgbaToGreyscale(maybeColor.value());
+                    float gradientX = greyscale * xSobelCoeffs[sobelCoeffCounter];
+                    float gradientY = greyscale * ySobelCoeffs[sobelCoeffCounter];
+                    gradient += std::sqrt((gradientX * gradientX) + (gradientY * gradientY));
+                }
+            }
+
+            // Set opacity to 0 if gradient is above threshold (i.e. this pixel contains an edge)
+            if (gradient > m_config.edgeThreshold) { setOpacity(x, y, 0.0f); }
+
+#if PARALLELISM == 1
+        }
+    }
+});
+#else
+            }
+        }
+#endif
+    }
 }
 
 // ======= DO NOT MODIFY THIS FUNCTION ========
@@ -250,6 +295,8 @@ T Renderer::fastExponentiation(T base, uint32_t power) {
     return res;
 }
 
+inline float Renderer::rgbaToGreyscale(const glm::vec4 &rgba) { return (0.3f * rgba.r) + (0.59f * rgba.g) + (0.11f * rgba.b); }
+
 // ======= TODO: IMPLEMENT ========
 // Compute Phong Shading given the voxel color (material color), the gradient, the light vector and view vector.
 // You can find out more about the Phong shading model at:
@@ -283,13 +330,6 @@ glm::vec3 Renderer::computeGoochShading(const glm::vec3& color, const volume::Gr
                                         const glm::vec3& lightDirection, const glm::vec3& viewDirection,
                                         const glm::vec3& kA, const glm::vec3& kD,
                                         const glm::vec3& kS, uint32_t specularPower) const {
-    // If gradient is within a certain fraction of the maximum gradient in the volume
-    // classify point as edge and render as black
-    // TODO: Improve as project goes on; this could be *very* nice
-    if ((gradient.magnitude / m_pGradientVolume->maxMagnitude()) > m_config.edgeClassificationThreshold) {
-        return glm::vec3(0.0f);
-    }
-    
     // Construct equation terms
     glm::vec3 kBlue     = glm::vec3(0.0f, 0.0f, m_config.blueCoeff);
     glm::vec3 kYellow   = glm::vec3(m_config.yellowCoeff, m_config.yellowCoeff, 0.0f);
@@ -407,5 +447,27 @@ void Renderer::fillColor(int x, int y, const glm::vec4& color)
 {
     const size_t index = static_cast<size_t>(m_config.renderResolution.x * y + x);
     m_frameBuffer[index] = color;
+}
+
+void Renderer::setOpacity(int x, int y, float alpha) {
+    const size_t index = static_cast<size_t>(m_config.renderResolution.x * y + x);
+    m_frameBuffer[index][3] = alpha;
+}
+
+std::optional<std::reference_wrapper<glm::vec4>> Renderer::getColor(int x, int y, OutOfBoundsStrategy strat) {
+    // Dealing with out of bounds
+    if ((x < 0 || x >= m_config.renderResolution.x) || (y < 0 || y >= m_config.renderResolution.y)) {
+        switch (strat) {
+            case (ZERO):
+                return std::nullopt;
+            case (NEAREST_NEIGHBOUR):
+                x = std::clamp(0, x, m_config.renderResolution.x - 1);
+                y = std::clamp(0, y, m_config.renderResolution.y - 1);
+                break;
+        }
+    }
+
+    const size_t index = static_cast<size_t>(m_config.renderResolution.x * y + x);
+    return m_frameBuffer[index];
 }
 }

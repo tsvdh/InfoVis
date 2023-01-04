@@ -132,6 +132,12 @@ void Menu::showIsoOptions() {
     ImGui::DragFloat("Iso Value", &m_renderConfig.isoValue, 0.1f, 0.0f, float(m_volumeMax));
 }
 
+void Menu::showEdgeDetectionOptions() {
+    ImGui::Text("Edge detection");
+    ImGui::Checkbox("Enable", &m_renderConfig.edgeDetection);
+    if (m_renderConfig.edgeDetection) { ImGui::SliderFloat("Threshold", &m_renderConfig.edgeThreshold, 0.0f, 2.0f); }
+}
+
 // This renders the options for configuring Gooch shading
 void Menu::showGoochOptions() {
     ImGui::Text("Gooch shading coefficients");
@@ -173,6 +179,11 @@ void Menu::showRayCastTab(std::chrono::duration<double> renderTime)
         ImGui::RadioButton("Phong", pShadingModeInt, int(render::ShadingMode::ShadingPhong));
         ImGui::RadioButton("Gooch", pShadingModeInt, int(render::ShadingMode::ShadingGooch));
         if (m_renderConfig.shadingMode == render::ShadingMode::ShadingGooch) { showGoochOptions(); }
+
+        ImGui::NewLine();
+        ImGui::Separator();
+
+        showEdgeDetectionOptions();
 
         ImGui::NewLine();
         ImGui::Separator();

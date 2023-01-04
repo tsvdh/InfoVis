@@ -39,6 +39,7 @@ public:
 private:
     void showLoadVolTab();
     void showIsoOptions();
+    void showEdgeDetectionOptions();
     void showGoochOptions();
     void showRayCastTab(std::chrono::duration<double> renderTime);
     void showTransFuncTab();
