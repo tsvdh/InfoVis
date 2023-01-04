@@ -152,8 +152,9 @@ void Renderer::render()
         for (int32_t y = std::begin(localRange.rows()); y != std::end(localRange.rows()); y++) {
             for (int32_t x = std::begin(localRange.cols()); x != std::end(localRange.cols()); x++) {
 #endif
-            // Compute gradient approximation
-            float gradient              = 0.0f;
+            // Compute x gradient and y gradient
+            float gradientX             = 0.0f;
+            float gradientY             = 0.0f;
             uint8_t sobelCoeffCounter   = 0U;
             for (int32_t dy = y - 1; dy <= y + 1; dy++) {
                 for (int32_t dx = x - 1; dx <= x + 1; dx++, sobelCoeffCounter++) {
@@ -161,13 +162,13 @@ void Renderer::render()
                     if (!maybeColor.has_value()) { continue; }
 
                     float greyscale = rgbaToGreyscale(maybeColor.value());
-                    float gradientX = greyscale * xSobelCoeffs[sobelCoeffCounter];
-                    float gradientY = greyscale * ySobelCoeffs[sobelCoeffCounter];
-                    gradient += std::sqrt((gradientX * gradientX) + (gradientY * gradientY));
+                    gradientX += greyscale * xSobelCoeffs[sobelCoeffCounter];
+                    gradientY += greyscale * ySobelCoeffs[sobelCoeffCounter];
                 }
             }
 
-            // Set opacity to 0 if gradient is above threshold (i.e. this pixel contains an edge)
+            // Compute final gradient and test against threshold
+            float gradient = std::sqrt((gradientX * gradientX) + (gradientY * gradientY));
             if (gradient > m_config.edgeThreshold) { setOpacity(x, y, 0.0f); }
 
 #if PARALLELISM == 1
