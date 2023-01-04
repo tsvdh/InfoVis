@@ -53,6 +53,8 @@ protected:
     template <typename T>
     static T fastExponentiation(T base, uint32_t power);
     inline static float rgbaToGreyscale(const glm::vec4 &rgba);
+    std::optional<std::reference_wrapper<const glm::vec4>> getColor(
+        const std::vector<glm::vec4> &oldFrameBuffer, int x, int y, OutOfBoundsStrategy strat = ZERO);
 
     static glm::vec3 computePhongShading(const glm::vec3& color, const volume::GradientVoxel& gradient,
                                          const glm::vec3& lightDirection, const glm::vec3& viewDirection,
@@ -82,8 +84,6 @@ private:
 
     bool instersectRayVolumeBounds(Ray& ray, const Bounds& volumeBounds) const;
     void fillColor(int x, int y, const glm::vec4& color);
-    void setBlack(int x, int y);
-    std::optional<std::reference_wrapper<glm::vec4>> getColor(int x, int y, OutOfBoundsStrategy strat = ZERO);
 
 protected:
     const volume::Volume* m_pVolume;

@@ -135,7 +135,8 @@ void Menu::showIsoOptions() {
 void Menu::showEdgeDetectionOptions() {
     ImGui::Text("Edge detection");
     ImGui::Checkbox("Enable", &m_renderConfig.edgeDetection);
-    if (m_renderConfig.edgeDetection) { ImGui::SliderFloat("Threshold", &m_renderConfig.edgeThreshold, 0.0f, 2.0f); }
+    if (m_renderConfig.edgeDetection) { ImGui::SliderFloat("Threshold", &m_renderConfig.edgeThreshold, 0.0f, 6.0f); }
+    if (m_renderConfig.edgeDetection) { ImGui::ColorEdit4("Edge color", glm::value_ptr(m_renderConfig.edgeColor)); }
 }
 
 // This renders the options for configuring Gooch shading
@@ -145,7 +146,6 @@ void Menu::showGoochOptions() {
     ImGui::SliderFloat("kYellow",           &m_renderConfig.yellowCoeff,                    0.0f, 1.0f);
     ImGui::SliderFloat("Cool Diffuse",      &m_renderConfig.coolDiffuseCoeff,               0.0f, 1.0f);
     ImGui::SliderFloat("Warm Diffuse",      &m_renderConfig.warmDiffuseCoeff,               0.0f, 1.0f);
-    ImGui::SliderFloat("Edge Threshold",    &m_renderConfig.edgeClassificationThreshold,    0.0f, 1.0f);
 }
 
 // This renders the RayCast tab, where the user can set the render mode, interpolation mode and other

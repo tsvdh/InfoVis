@@ -44,6 +44,7 @@ struct RenderConfig {
     // Edge detection
     bool edgeDetection { false };
     float edgeThreshold { 1.0f };
+    glm::vec4 edgeColor { 1.0f, 1.0f, 1.0f, 1.0f };
 
     // ISO rendering
     float isoValue { 95.0f };

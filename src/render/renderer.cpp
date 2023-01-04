@@ -136,10 +136,11 @@ void Renderer::render()
         }
 #endif
 
-    // Edge detection and coloring black
+    // Edge detection
     if (m_config.edgeDetection) {
-        float xSobelCoeffs[] { 1.0f, 0.0f, -1.0f, 2.0f, 0.0f, -2.0f, 1.0f, 0.0f, -1.0f };
-        float ySobelCoeffs[] { 1.0f, 2.0f, 1.0f, 0.0f, 0.0f, 0.0f, -1.0f, -2.0f, -1.0f };
+        float xSobelCoeffs[]    { -1.0f, 0.0f, 1.0f, -2.0f, 0.0f, 2.0f, -1.0f, 0.0f, 1.0f };
+        float ySobelCoeffs[]    { -1.0f, -2.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f };
+        std::vector<glm::vec4> oldFrameBuffer = m_frameBuffer;
 
         #if PARALLELISM == 0
     // Regular (single threaded) for loops.
@@ -158,7 +159,7 @@ void Renderer::render()
             uint8_t sobelCoeffCounter   = 0U;
             for (int32_t dy = y - 1; dy <= y + 1; dy++) {
                 for (int32_t dx = x - 1; dx <= x + 1; dx++, sobelCoeffCounter++) {
-                    auto maybeColor = getColor(dx, dy, ZERO);
+                    auto maybeColor = getColor(oldFrameBuffer, dx, dy, ZERO);
                     if (!maybeColor.has_value()) { continue; }
 
                     float greyscale = rgbaToGreyscale(maybeColor.value());
@@ -169,7 +170,7 @@ void Renderer::render()
 
             // Compute final gradient and test against threshold
             float gradient = std::sqrt((gradientX * gradientX) + (gradientY * gradientY));
-            if (gradient > m_config.edgeThreshold) { setBlack(x, y); }
+            if (gradient > m_config.edgeThreshold) { fillColor(x, y, m_config.edgeColor); }
 
 #if PARALLELISM == 1
         }
@@ -450,14 +451,9 @@ void Renderer::fillColor(int x, int y, const glm::vec4& color)
     m_frameBuffer[index] = color;
 }
 
-void Renderer::setBlack(int x, int y) {
-    const size_t index = static_cast<size_t>(m_config.renderResolution.x * y + x);
-    m_frameBuffer[index].r = 0.0f;
-    m_frameBuffer[index].g = 0.0f;
-    m_frameBuffer[index].b = 0.0f;
-}
-
-std::optional<std::reference_wrapper<glm::vec4>> Renderer::getColor(int x, int y, OutOfBoundsStrategy strat) {
+std::optional<std::reference_wrapper<const glm::vec4>> Renderer::getColor(const std::vector<glm::vec4> &oldFrameBuffer,
+                                                                          int x, int y,
+                                                                          OutOfBoundsStrategy strat) {
     // Dealing with out of bounds
     if ((x < 0 || x >= m_config.renderResolution.x) || (y < 0 || y >= m_config.renderResolution.y)) {
         switch (strat) {
@@ -471,6 +467,6 @@ std::optional<std::reference_wrapper<glm::vec4>> Renderer::getColor(int x, int y
     }
 
     const size_t index = static_cast<size_t>(m_config.renderResolution.x * y + x);
-    return m_frameBuffer[index];
+    return oldFrameBuffer[index];
 }
 }
