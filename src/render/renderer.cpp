@@ -169,7 +169,7 @@ void Renderer::render()
 
             // Compute final gradient and test against threshold
             float gradient = std::sqrt((gradientX * gradientX) + (gradientY * gradientY));
-            if (gradient > m_config.edgeThreshold) { setOpacity(x, y, 0.0f); }
+            if (gradient > m_config.edgeThreshold) { setBlack(x, y); }
 
 #if PARALLELISM == 1
         }
@@ -450,9 +450,11 @@ void Renderer::fillColor(int x, int y, const glm::vec4& color)
     m_frameBuffer[index] = color;
 }
 
-void Renderer::setOpacity(int x, int y, float alpha) {
+void Renderer::setBlack(int x, int y) {
     const size_t index = static_cast<size_t>(m_config.renderResolution.x * y + x);
-    m_frameBuffer[index][3] = alpha;
+    m_frameBuffer[index].r = 0.0f;
+    m_frameBuffer[index].g = 0.0f;
+    m_frameBuffer[index].b = 0.0f;
 }
 
 std::optional<std::reference_wrapper<glm::vec4>> Renderer::getColor(int x, int y, OutOfBoundsStrategy strat) {

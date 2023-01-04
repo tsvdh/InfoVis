@@ -82,7 +82,7 @@ private:
 
     bool instersectRayVolumeBounds(Ray& ray, const Bounds& volumeBounds) const;
     void fillColor(int x, int y, const glm::vec4& color);
-    void setOpacity(int x, int y, float alpha);
+    void setBlack(int x, int y);
     std::optional<std::reference_wrapper<glm::vec4>> getColor(int x, int y, OutOfBoundsStrategy strat = ZERO);
 
 protected:
