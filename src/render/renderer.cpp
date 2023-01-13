@@ -269,7 +269,38 @@ glm::vec3 Renderer::computePhongShading(const glm::vec3& color, const volume::Gr
 // Use getTFValue to compute the color for a given volume value according to the 1D transfer function.
 glm::vec4 Renderer::traceRayComposite(const Ray& ray, float sampleStep) const
 {
-    return glm::vec4(0.0f);
+    
+    glm::vec3 bestGuessPos;
+    float bestGuessValue;
+    uint32_t currentIter = 0U;
+    glm::vec4 retColour = glm::vec4(0.0f);
+    float alpha = 0.f;
+    for(float i = ray.tmin; i < ray.tmax; i+= sampleStep){
+        float intValue = m_pVolume->getSampleInterpolate(ray.origin+(i*ray.direction));
+        glm::vec4 TFVal =  getTFValue(intValue);
+        float retAlpha = TFVal.a;
+        TFVal.a = 1;
+        TFVal = retAlpha * TFVal;
+        // glm::vec3 TFColour = retAlpha*glm::vec3(TFVal.r, TFVal.b, TFVal.g);
+        retColour = retColour + (1-alpha)*TFVal;
+        alpha = alpha + (1-alpha)*retAlpha;
+        //retColour.
+        // EARLY TERMINATION:
+        if(alpha == 1){
+            break;
+        }
+    }
+    //     // Compute new guess
+    //     bestGuess       = (t0 + t1) / 2.0f;
+    //     bestGuessPos    = ray.origin + (bestGuess * ray.direction);
+    //     bestGuessValue  = m_pVolume->getSampleInterpolate(bestGuessPos);
+
+    //     // Terminate or figure out search direction
+    //     if (std::abs(bestGuessValue - isoValue) < epsilon) { return bestGuess; } // TODO: Difference might have to be relative rather than absolute
+    //     else if (bestGuessValue < isoValue) { t0 += (t1 - t0) / 2.0f; }
+    //     else { t1 -= (t1 - t0) / 2.0f; }
+    // }
+    return retColour;
 }
 
 // ======= DO NOT MODIFY THIS FUNCTION ========
