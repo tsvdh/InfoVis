@@ -269,7 +269,31 @@ glm::vec3 Renderer::computePhongShading(const glm::vec3& color, const volume::Gr
 // Use getTFValue to compute the color for a given volume value according to the 1D transfer function.
 glm::vec4 Renderer::traceRayComposite(const Ray& ray, float sampleStep) const
 {
-    return glm::vec4(0.0f);
+    
+    glm::vec3 bestGuessPos;
+    float bestGuessValue;
+    uint32_t currentIter = 0U;
+    glm::vec4 retColour = glm::vec4(0.0f);
+    float alpha = 0.f;
+    for(float i = ray.tmin; i < ray.tmax; i+= sampleStep){
+        float intValue = m_pVolume->getSampleInterpolate(ray.origin+(i*ray.direction));
+        glm::vec4 TFVal =  getTFValue(intValue);
+        //Extract the alpha value
+        float retAlpha = TFVal.a;
+        TFVal.a = 1;
+        //Create the R*A, B*A, G*A, A vector
+        TFVal = retAlpha * TFVal;
+        //Accumulate
+        retColour = retColour + (1-alpha)*TFVal;
+        alpha = alpha + (1-alpha)*retAlpha;
+
+        //EARLY TERMINATION:
+        if(alpha == 1){
+            break;
+        }
+    }
+
+    return retColour;
 }
 
 // ======= DO NOT MODIFY THIS FUNCTION ========
