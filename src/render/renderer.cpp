@@ -312,7 +312,17 @@ glm::vec4 Renderer::getTFValue(float val) const
 // Use the getTF2DOpacity function that you implemented to compute the opacity according to the 2D transfer function.
 glm::vec4 Renderer::traceRayTF2D(const Ray& ray, float sampleStep) const
 {
-    return glm::vec4(0.0f);
+    glm::vec3 samplePos = ray.origin + ray.tmin * ray.direction;
+    const glm::vec3 increment = sampleStep * ray.direction;
+    for (float t = ray.tmin; t <= ray.tmax; t += sampleStep, samplePos += increment) {
+        // figure out how to aggregate opacities
+        getTF2DOpacity(
+            m_pGradientVolume->getGradient(samplePos.x, samplePos.y, samplePos.z).magnitude,
+            m_pGradientVolume->getGradientInterpolate(samplePos).magnitude);
+        
+    }
+
+    return glm::vec4();
 }
 
 // ======= TODO: IMPLEMENT ========
