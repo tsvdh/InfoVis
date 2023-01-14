@@ -278,28 +278,21 @@ glm::vec4 Renderer::traceRayComposite(const Ray& ray, float sampleStep) const
     for(float i = ray.tmin; i < ray.tmax; i+= sampleStep){
         float intValue = m_pVolume->getSampleInterpolate(ray.origin+(i*ray.direction));
         glm::vec4 TFVal =  getTFValue(intValue);
+        //Extract the alpha value
         float retAlpha = TFVal.a;
         TFVal.a = 1;
+        //Create the R*A, B*A, G*A, A vector
         TFVal = retAlpha * TFVal;
-        // glm::vec3 TFColour = retAlpha*glm::vec3(TFVal.r, TFVal.b, TFVal.g);
+        //Accumulate
         retColour = retColour + (1-alpha)*TFVal;
         alpha = alpha + (1-alpha)*retAlpha;
-        //retColour.
-        // EARLY TERMINATION:
+
+        //EARLY TERMINATION:
         if(alpha == 1){
             break;
         }
     }
-    //     // Compute new guess
-    //     bestGuess       = (t0 + t1) / 2.0f;
-    //     bestGuessPos    = ray.origin + (bestGuess * ray.direction);
-    //     bestGuessValue  = m_pVolume->getSampleInterpolate(bestGuessPos);
 
-    //     // Terminate or figure out search direction
-    //     if (std::abs(bestGuessValue - isoValue) < epsilon) { return bestGuess; } // TODO: Difference might have to be relative rather than absolute
-    //     else if (bestGuessValue < isoValue) { t0 += (t1 - t0) / 2.0f; }
-    //     else { t1 -= (t1 - t0) / 2.0f; }
-    // }
     return retColour;
 }
 
