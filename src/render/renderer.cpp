@@ -326,7 +326,7 @@ glm::vec4 Renderer::traceRayTF2D(const Ray& ray, float sampleStep) const
     }
 
     auto color = m_config.TF2DColor;
-    color.a = alpha;
+    color = color * alpha;
     return color;
 }
 
