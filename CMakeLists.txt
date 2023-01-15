@@ -42,12 +42,20 @@ target_link_libraries(Viewer
 		GLEW::GLEW)
 
 # Copy glsl files to build directory
+# VS / VSCode
 configure_file("${CMAKE_CURRENT_LIST_DIR}/shaders/viewer_output.vs" "${CMAKE_CURRENT_BINARY_DIR}/viewer_output.vs" COPYONLY)
 configure_file("${CMAKE_CURRENT_LIST_DIR}/shaders/viewer_output.fs" "${CMAKE_CURRENT_BINARY_DIR}/viewer_output.fs" COPYONLY)
 configure_file("${CMAKE_CURRENT_LIST_DIR}/shaders/wireframe_cube.vs" "${CMAKE_CURRENT_BINARY_DIR}/wireframe_cube.vs" COPYONLY)
 configure_file("${CMAKE_CURRENT_LIST_DIR}/shaders/wireframe_cube.fs" "${CMAKE_CURRENT_BINARY_DIR}/wireframe_cube.fs" COPYONLY)
 configure_file("${CMAKE_CURRENT_LIST_DIR}/shaders/surface_cube.vs" "${CMAKE_CURRENT_BINARY_DIR}/surface_cube.vs" COPYONLY)
 configure_file("${CMAKE_CURRENT_LIST_DIR}/shaders/surface_cube.fs" "${CMAKE_CURRENT_BINARY_DIR}/surface_cube.fs" COPYONLY)
+# CLion
+configure_file("${CMAKE_CURRENT_LIST_DIR}/shaders/viewer_output.vs" "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/viewer_output.vs" COPYONLY)
+configure_file("${CMAKE_CURRENT_LIST_DIR}/shaders/viewer_output.fs" "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/viewer_output.fs" COPYONLY)
+configure_file("${CMAKE_CURRENT_LIST_DIR}/shaders/wireframe_cube.vs" "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/wireframe_cube.vs" COPYONLY)
+configure_file("${CMAKE_CURRENT_LIST_DIR}/shaders/wireframe_cube.fs" "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/wireframe_cube.fs" COPYONLY)
+configure_file("${CMAKE_CURRENT_LIST_DIR}/shaders/surface_cube.vs" "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/surface_cube.vs" COPYONLY)
+configure_file("${CMAKE_CURRENT_LIST_DIR}/shaders/surface_cube.fs" "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/surface_cube.fs" COPYONLY)
 
 enable_testing()
 add_subdirectory("integrity_tests")
