@@ -340,9 +340,15 @@ glm::vec4 Renderer::traceRayTF2D(const Ray& ray, float sampleStep) const
 float Renderer::getTF2DOpacity(float intensity, float gradientMagnitude) const
 {
     // intensity is x, gradientMagnitude is y
-    m_config.TF2DIntensity;
-    m_config.TF2DRadius;
-    return 0.0f;
+
+    float normalizedHeight = (gradientMagnitude - m_pGradientVolume->minMagnitude()) 
+                           / (m_pGradientVolume->maxMagnitude() - m_pGradientVolume->minMagnitude());
+
+    float distToMiddle = glm::abs(intensity - m_config.TF2DIntensity);
+
+    float ratioToMiddle = glm::clamp(distToMiddle / (m_config.TF2DRadius * normalizedHeight), 0.0f, 1.0f);
+    
+    return 1 - ratioToMiddle;
 }
 
 // This function computes if a ray intersects with the axis-aligned bounding box around the volume.
