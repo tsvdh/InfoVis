@@ -144,6 +144,8 @@ void Menu::showRayCastTab(std::chrono::duration<double> renderTime)
 
         ImGui::Checkbox("Volume Shading", &m_renderConfig.volumeShading);
 
+        ImGui::Checkbox("Ambient Occlusion", &m_renderConfig.ambientOcclusion);
+
         ImGui::NewLine();
 
         ImGui::DragFloat("Iso Value", &m_renderConfig.isoValue, 0.1f, 0.0f, float(m_volumeMax));

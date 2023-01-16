@@ -32,6 +32,7 @@ Renderer::Renderer(
 // Set a new render config if the user changed the settings.
 void Renderer::setConfig(const RenderConfig& config)
 {
+    
     if (config.renderResolution != m_config.renderResolution)
         resizeImage(config.renderResolution);
 
@@ -292,7 +293,10 @@ glm::vec4 Renderer::traceRayComposite(const Ray& ray, float sampleStep) const
             break;
         }
     }
+    //Shade
+    if (m_config.ambientOcclusion){
 
+    }
     return retColour;
 }
 
