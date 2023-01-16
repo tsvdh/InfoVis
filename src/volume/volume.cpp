@@ -117,26 +117,13 @@ float Volume::getSampleNearestNeighbourInterpolation(const glm::vec3& coord) con
     return getVoxel(roundToPositiveInt(coord.x), roundToPositiveInt(coord.y), roundToPositiveInt(coord.z));
 }
 
-// ======= TODO : IMPLEMENT the functions below for tri-linear interpolation ========
-// ======= Consider using the linearInterpolate and biLinearInterpolate functions ===
-// This function returns the trilinear interpolated value at the continuous 3D position given by coord.
-float Volume::getSampleTriLinearInterpolation(const glm::vec3& coord) const {
-    // Check if the given coord lies within the volume's bounds
-    if (glm::any(glm::lessThan(coord,           glm::vec3(0.0f))) ||
-        glm::any(glm::greaterThanEqual(coord,   glm::vec3(m_dim))))
-        return 0.0f;
-
-    float depthInterpFactor = coord.z - glm::floor(coord.z);
-    float nearPlaneInterp   = biLinearInterpolate({coord.x, coord.y}, static_cast<int>(glm::floor(coord.z)));
-    float farPlaneInterp    = biLinearInterpolate({coord.x, coord.y}, static_cast<int>(glm::ceil(coord.z)));
-    return linearInterpolate(nearPlaneInterp, farPlaneInterp, depthInterpFactor);
-}
-
 // This function linearly interpolates the value at X using incoming values g0 and g1 given a factor (equal to the positon of x in 1D)
 //
 // g0--X--------g1
 //   factor
-float Volume::linearInterpolate(float g0, float g1, float factor) { return (g1 * factor) + (g0 * (1.0f - factor)); }
+float Volume::linearInterpolate(float g0, float g1, float factor) {
+    return (g1 * factor) + (g0 * (1.0f - factor));
+}
 
 // This function bi-linearly interpolates the value at the given continuous 2D XY coordinate for a fixed integer z coordinate.
 float Volume::biLinearInterpolate(const glm::vec2& xyCoord, int z) const {
@@ -165,18 +152,34 @@ float Volume::biLinearInterpolate(const glm::vec2& xyCoord, int z) const {
     return linearInterpolate(bottomInterp, topInterp, verticalInterpFactor);
 }
 
+// ======= TODO : IMPLEMENT the functions below for tri-linear interpolation ========
+// ======= Consider using the linearInterpolate and biLinearInterpolate functions ===
+// This function returns the trilinear interpolated value at the continuous 3D position given by coord.
+    float Volume::getSampleTriLinearInterpolation(const glm::vec3& coord) const {
+        // Check if the given coord lies within the volume's bounds
+        if (glm::any(glm::lessThan(coord,           glm::vec3(0.0f))) ||
+            glm::any(glm::greaterThanEqual(coord,   glm::vec3(m_dim))))
+            return 0.0f;
+
+        float depthInterpFactor = coord.z - glm::floor(coord.z);
+        float nearPlaneInterp   = biLinearInterpolate({coord.x, coord.y}, static_cast<int>(glm::floor(coord.z)));
+        float farPlaneInterp    = biLinearInterpolate({coord.x, coord.y}, static_cast<int>(glm::ceil(coord.z)));
+        return linearInterpolate(nearPlaneInterp, farPlaneInterp, depthInterpFactor);
+    }
 
 // ======= OPTIONAL : This functions can be used to implement cubic interpolation ========
 // This function represents the h(x) function, which returns the weight of the cubic interpolation kernel for a given position x
 float Volume::weight(float x)
 {
+    // TODO: find best value
     const float a = -0.75;
 
     float absX = glm::abs(x);
+
     if (0 <= absX && absX < 1) {
         return (a + 2) * glm::pow(absX, 3) - (a + 3) * glm::pow(absX, 2) + 1;
     }
-    else if (0 <= absX && absX < 1) {
+    else if (1 <= absX && absX < 2) {
         return a * glm::pow(absX, 3) - 5 * a * glm::pow(x, 2) + 8 * a * absX - 4 * a;
     }
     else {
@@ -184,18 +187,69 @@ float Volume::weight(float x)
     }
 }
 
+// Takes a floating point, and returns the four adjacent voxel coordinates
+// A coordinate is -1 if out of bounds
+int* Volume::getVoxelCoors(float pos, int min, int max)
+{
+    static int coors[4];
+
+    int floor = glm::floor(pos);
+    int ceil = glm::ceil(pos);
+
+    coors[1] = floor;
+    coors[0] = floor - 1 < min ? -1 : floor - 1;
+    coors[2] = ceil > max ? -1 : ceil;
+    coors[3] = coors[2] == -1 ? -1 : (ceil + 1 > max ? -1 : ceil + 1);
+
+    return coors;
+}
+
 // ======= OPTIONAL : This functions can be used to implement cubic interpolation ========
 // This functions returns the results of a cubic interpolation using 4 values and a factor
+// g0-----g1-----g2-----g3
+//         |--X--|
+//      factor range
 float Volume::cubicInterpolate(float g0, float g1, float g2, float g3, float factor)
 {
-    return 0.0f;
+    return
+          g0 * weight(-1 - factor)
+        + g1 * weight(0 - factor)
+        + g2 * weight(1 - factor)
+        + g3 * weight(2 - factor);
 }
 
 // ======= OPTIONAL : This functions can be used to implement cubic interpolation ========
 // This function returns the value of a bicubic interpolation
 float Volume::biCubicInterpolate(const glm::vec2& xyCoord, int z) const
 {
-    return 0.0f;
+    // Get the bounded coordinates
+    int* xCoors = getVoxelCoors(xyCoord.x, 0, m_dim.x - 1);
+    int* yCoors = getVoxelCoors(xyCoord.y, 0, m_dim.y - 1);
+
+    // Calculate the factors, use previous roundings for optimization
+    float horizontalFactor = xyCoord.x - static_cast<float>(xCoors[1]);
+    float verticalFactor = xyCoord.y - static_cast<float>(yCoors[1]);
+
+    float voxels[4][4];
+    // Get the voxel values if coors are in bounds
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            if (xCoors[i] == -1 || yCoors[j] == -1) {
+                voxels[i][j] = 0;
+            } else {
+                voxels[i][j] = getVoxel(xCoors[i], yCoors[j], z);
+            }
+        }
+    }
+
+    float tempInterps[4];
+    // Interpolate vertically
+    for (int i = 0; i < 4; i++) {
+        tempInterps[i] = cubicInterpolate(voxels[i][0], voxels[i][1], voxels[i][2], voxels[i][3], verticalFactor);
+    }
+
+    // Interpolate horizontally
+    return cubicInterpolate(tempInterps[0], tempInterps[1], tempInterps[2], tempInterps[3], horizontalFactor);
 }
 
 // ======= OPTIONAL : This functions can be used to implement cubic interpolation ========
@@ -207,12 +261,24 @@ float Volume::getSampleTriCubicInterpolation(const glm::vec3& coord) const
         glm::any(glm::greaterThanEqual(coord,   glm::vec3(m_dim))))
         return 0.0f;
 
+    // Get the bounded coordinates
+    int* zCoors = getVoxelCoors(coord.z, 0, m_dim.z);
 
+    // Calculate depth factor, use previous rounding for optimization
+    float depthFactor = coord.z - static_cast<float>(zCoors[1]);
 
-//    float depthInterpFactor = coord.z - glm::floor(coord.z);
-//    float nearPlaneInterp   = biLinearInterpolate({coord.x, coord.y}, static_cast<int>(glm::floor(coord.z)));
-//    float farPlaneInterp    = biLinearInterpolate({coord.x, coord.y}, static_cast<int>(glm::ceil(coord.z)));
-//    return linearInterpolate(nearPlaneInterp, farPlaneInterp, depthInterpFactor);
+    float tempInterps[4];
+    // Interpolate the four planes, if they are in bounds
+    for (int i = 0; i < 4; i++) {
+        if (zCoors[i] == -1) {
+            tempInterps[i] = 0;
+        } else {
+            tempInterps[i] = biCubicInterpolate({coord.x, coord.y}, zCoors[i]);
+        }
+    }
+
+    // Interpolate depth wise
+    return cubicInterpolate(tempInterps[0], tempInterps[0], tempInterps[0], tempInterps[0], depthFactor);
 }
 
 // Load an fld volume data file
