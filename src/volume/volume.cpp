@@ -104,7 +104,8 @@ float Volume::getSampleInterpolate(const glm::vec3& coord) const
 float Volume::getSampleNearestNeighbourInterpolation(const glm::vec3& coord) const
 {
     // check if the coordinate is within volume boundaries, since we only look at direct neighbours we only need to check within 0.5
-    if (glm::any(glm::lessThan(coord + 0.5f, glm::vec3(0))) || glm::any(glm::greaterThanEqual(coord + 0.5f, glm::vec3(m_dim))))
+    if (glm::any(glm::lessThan(coord + 0.5f,            glm::vec3(0))) ||
+        glm::any(glm::greaterThanEqual(coord + 0.5f,    glm::vec3(m_dim))))
         return 0.0f;
 
     // nearest neighbour simply rounds to the closest voxel positions
@@ -122,7 +123,8 @@ float Volume::getSampleNearestNeighbourInterpolation(const glm::vec3& coord) con
 float Volume::getSampleTriLinearInterpolation(const glm::vec3& coord) const {
     // Check if the given coord lies within the volume's bounds
     if (glm::any(glm::lessThan(coord,           glm::vec3(0.0f))) ||
-        glm::any(glm::greaterThanEqual(coord,   glm::vec3(m_dim)))) { return 0.0f; }
+        glm::any(glm::greaterThanEqual(coord,   glm::vec3(m_dim))))
+        return 0.0f;
 
     float depthInterpFactor = coord.z - glm::floor(coord.z);
     float nearPlaneInterp   = biLinearInterpolate({coord.x, coord.y}, static_cast<int>(glm::floor(coord.z)));
@@ -168,7 +170,18 @@ float Volume::biLinearInterpolate(const glm::vec2& xyCoord, int z) const {
 // This function represents the h(x) function, which returns the weight of the cubic interpolation kernel for a given position x
 float Volume::weight(float x)
 {
-    return 0.0f;
+    const float a = -0.75;
+
+    float absX = glm::abs(x);
+    if (0 <= absX && absX < 1) {
+        return (a + 2) * glm::pow(absX, 3) - (a + 3) * glm::pow(absX, 2) + 1;
+    }
+    else if (0 <= absX && absX < 1) {
+        return a * glm::pow(absX, 3) - 5 * a * glm::pow(x, 2) + 8 * a * absX - 4 * a;
+    }
+    else {
+        return 0;
+    }
 }
 
 // ======= OPTIONAL : This functions can be used to implement cubic interpolation ========
@@ -189,7 +202,17 @@ float Volume::biCubicInterpolate(const glm::vec2& xyCoord, int z) const
 // This function computes the tricubic interpolation at coord
 float Volume::getSampleTriCubicInterpolation(const glm::vec3& coord) const
 {
-    return 0.0f;
+    // Check if the given coord lies within the volume's bounds
+    if (glm::any(glm::lessThan(coord,           glm::vec3(0.0f))) ||
+        glm::any(glm::greaterThanEqual(coord,   glm::vec3(m_dim))))
+        return 0.0f;
+
+
+
+//    float depthInterpFactor = coord.z - glm::floor(coord.z);
+//    float nearPlaneInterp   = biLinearInterpolate({coord.x, coord.y}, static_cast<int>(glm::floor(coord.z)));
+//    float farPlaneInterp    = biLinearInterpolate({coord.x, coord.y}, static_cast<int>(glm::ceil(coord.z)));
+//    return linearInterpolate(nearPlaneInterp, farPlaneInterp, depthInterpFactor);
 }
 
 // Load an fld volume data file
