@@ -281,6 +281,16 @@ glm::vec4 Renderer::traceRayComposite(const Ray& ray, float sampleStep) const
         //Extract the alpha value
         float retAlpha = TFVal.a;
         TFVal.a = 1;
+        
+        if (m_config.volumeShading) {
+                // COMPUTE PHONG SHADING IN HERE
+                glm::vec3 intrmCol(TFVal);
+                const volume::GradientVoxel &localGradient  = m_pGradientVolume->getGradientInterpolate(ray.origin+(i*ray.direction));
+                glm::vec3 viewDirection                     = ray.origin+(i*ray.direction) - m_pCamera->position();
+                glm::vec3 phongRes                          = computePhongShading(intrmCol, localGradient, viewDirection, viewDirection);
+                
+                TFVal = glm::vec4(phongRes, 1.0f);
+        } 
         //Create the R*A, B*A, G*A, A vector
         TFVal = retAlpha * TFVal;
         //Accumulate
@@ -292,7 +302,7 @@ glm::vec4 Renderer::traceRayComposite(const Ray& ray, float sampleStep) const
             break;
         }
     }
-
+   
     return retColour;
 }
 
