@@ -278,7 +278,7 @@ float Volume::getSampleTriCubicInterpolation(const glm::vec3& coord) const
     }
 
     // Interpolate depth wise
-    return cubicInterpolate(tempInterps[0], tempInterps[0], tempInterps[0], tempInterps[0], depthFactor);
+    return cubicInterpolate(tempInterps[0], tempInterps[1], tempInterps[2], tempInterps[3], depthFactor);
 }
 
 // Load an fld volume data file
