@@ -39,7 +39,7 @@ protected:
     static float linearInterpolate(float g0, float g1, float factor);
 
     float getSampleTriCubicInterpolation(const glm::vec3& coord) const;
-    static int* getVoxelCoors(float pos, int min, int max);
+    static std::array<int, 4> getVoxelCoors(float pos, int min, int max);
     float biCubicInterpolate(const glm::vec2& xyCoord, int z) const;
     static float cubicInterpolate(float g0, float g1, float g2, float g3, float factor);
     static float weight(float x);

@@ -84,7 +84,7 @@ void Renderer::render()
 #else
     // Parallel for loop (in 2 dimensions) that subdivides the screen into tiles.
     const tbb::blocked_range2d<int> screenRange { 0, m_config.renderResolution.y, 0, m_config.renderResolution.x };
-        tbb::parallel_for(screenRange, [&](tbb::blocked_range2d<int> localRange) {
+    tbb::parallel_for(screenRange, [&](tbb::blocked_range2d<int> localRange) {
         // Loop over the pixels in a tile. This function is called on multiple threads at the same time.
         for (int y = std::begin(localRange.rows()); y != std::end(localRange.rows()); y++) {
             for (int x = std::begin(localRange.cols()); x != std::end(localRange.cols()); x++) {
@@ -126,12 +126,12 @@ void Renderer::render()
             fillColor(x, y, color);
 
 #if PARALLELISM == 1
-        }
-    }
-});
-#else
             }
         }
+    });
+#else
+        }
+    }
 #endif
 }
 

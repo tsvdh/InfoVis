@@ -189,15 +189,15 @@ float Volume::weight(float x)
 
 // Takes a floating point, and returns the four adjacent voxel coordinates
 // A coordinate is -1 if out of bounds
-int* Volume::getVoxelCoors(float pos, int min, int max)
+std::array<int, 4> Volume::getVoxelCoors(float pos, int min, int max)
 {
-    static int coors[4];
+    std::array<int, 4> coors{};
 
     int floor = glm::floor(pos);
     int ceil = glm::ceil(pos);
 
-    coors[1] = floor;
     coors[0] = floor - 1 < min ? -1 : floor - 1;
+    coors[1] = floor;
     coors[2] = ceil > max ? -1 : ceil;
     coors[3] = coors[2] == -1 ? -1 : (ceil + 1 > max ? -1 : ceil + 1);
 
@@ -223,8 +223,8 @@ float Volume::cubicInterpolate(float g0, float g1, float g2, float g3, float fac
 float Volume::biCubicInterpolate(const glm::vec2& xyCoord, int z) const
 {
     // Get the bounded coordinates
-    int* xCoors = getVoxelCoors(xyCoord.x, 0, m_dim.x - 1);
-    int* yCoors = getVoxelCoors(xyCoord.y, 0, m_dim.y - 1);
+    auto xCoors = getVoxelCoors(xyCoord.x, 0, m_dim.x - 1);
+    auto yCoors = getVoxelCoors(xyCoord.y, 0, m_dim.y - 1);
 
     // Calculate the factors, use previous roundings for optimization
     float horizontalFactor = xyCoord.x - static_cast<float>(xCoors[1]);
@@ -262,7 +262,7 @@ float Volume::getSampleTriCubicInterpolation(const glm::vec3& coord) const
         return 0.0f;
 
     // Get the bounded coordinates
-    int* zCoors = getVoxelCoors(coord.z, 0, m_dim.z);
+    auto zCoors = getVoxelCoors(coord.z, 0, m_dim.z - 1);
 
     // Calculate depth factor, use previous rounding for optimization
     float depthFactor = coord.z - static_cast<float>(zCoors[1]);
