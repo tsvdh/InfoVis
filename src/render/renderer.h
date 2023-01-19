@@ -60,7 +60,7 @@ protected:
 private:
     void resizeImage(const glm::ivec2& resolution);
     void resetImage();
-
+    void recompute_ambient();
     glm::vec4 getTFValue(float val) const;
     float getTF2DOpacity(float val, float gradientMagnitude) const;
 
@@ -71,8 +71,10 @@ protected:
     const volume::Volume* m_pVolume;
     const volume::GradientVolume* m_pGradientVolume;
     const render::RayTraceCamera* m_pCamera;
+    volume::Volume* amb_Occlusion;
+    bool flag {true};
     RenderConfig m_config;
-
+    std::vector<float> ambOcc_data;
     std::vector<glm::vec4> m_frameBuffer;
 };
 

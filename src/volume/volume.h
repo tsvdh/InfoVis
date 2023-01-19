@@ -21,7 +21,7 @@ public:
 public:
     Volume(const std::filesystem::path& file);
     Volume(std::vector<uint16_t> data, const glm::ivec3& dim);
-
+    
     float minimum() const;
     float maximum() const;
     std::vector<int> histogram() const;

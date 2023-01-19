@@ -48,7 +48,6 @@ Volume::Volume(std::vector<uint16_t> data, const glm::ivec3& dim)
     , m_histogram(computeHistogram(m_data))
 {
 }
-
 float Volume::minimum() const
 {
     return m_minimum;
@@ -76,6 +75,7 @@ std::string_view Volume::fileName() const
 
 float Volume::getVoxel(int x, int y, int z) const
 {
+    if(x>=m_dim.x || y>=m_dim.y ||  z>=m_dim.z  || x<0 || y<0 || z<0) return 0;
     const size_t i = size_t(x + m_dim.x * (y + m_dim.y * z));
     return static_cast<float>(m_data[i]);
 }
@@ -227,6 +227,7 @@ void Volume::loadFile(const std::filesystem::path& file)
 static Header readHeader(std::ifstream& ifs)
 {
     Header out {};
+
 
     // Read input until the data section starts.
     std::string line;

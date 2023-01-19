@@ -21,7 +21,8 @@ struct RenderConfig {
     bool volumeShading { false };
     bool ambientOcclusion { false };
     float isoValue { 95.0f };
-
+    float level {2.0f};
+    float normMult {0.f};
     // 1D transfer function.
     std::array<glm::vec4, 256> tfColorMap;
     // Used to convert from a value to an index in the color map.

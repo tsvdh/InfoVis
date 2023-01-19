@@ -148,6 +148,14 @@ void Menu::showRayCastTab(std::chrono::duration<double> renderTime)
 
         ImGui::NewLine();
 
+        ImGui::DragFloat("Normal Multiplier", &m_renderConfig.normMult, 0.1f, 0.0f, 5.0f);
+
+        ImGui::NewLine();
+
+        ImGui::DragFloat("Level Detail", &m_renderConfig.level, 1.f, 0.0f, 12.0f);
+
+        ImGui::NewLine();
+
         ImGui::DragFloat("Iso Value", &m_renderConfig.isoValue, 0.1f, 0.0f, float(m_volumeMax));
 
         ImGui::NewLine();

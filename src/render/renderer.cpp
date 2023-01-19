@@ -9,7 +9,7 @@
 #include <tbb/blocked_range2d.h>
 #include <tbb/parallel_for.h>
 #include <tuple>
-
+#include <iostream>
 namespace render {
 
 // The renderer is passed a pointer to the volume, gradinet volume, camera and an initial renderConfig.
@@ -26,17 +26,141 @@ Renderer::Renderer(
     , m_pCamera(pCamera)
     , m_config(initialConfig)
 {
+    
     resizeImage(initialConfig.renderResolution);
+    // recompute_ambient();
+}
+
+
+float linearInterpolate(float g0, float g1, float factor) { return (g1 * factor) + (g0 * (1.0f - factor)); }
+
+
+float linearInterpolate(const std::vector<float>& level, float x, float y, float z, const glm::ivec3& dm){
+    float factor = x - floorf(x);
+    if(size_t(floorf(x) + dm.x*(y +  dm.y*z)) >= level.size() || size_t(ceilf(x) + dm.x*(y +  dm.y*z)) >= level.size()){
+        // /std::cout<<"BIG "<<size_t(floorf(x) + dm.x*(y +  dm.y*z))<< " "<<size_t(ceilf(x) + dm.x*(y +  dm.y*z))<<" "<<level.size()<<std::endl;
+        return 0;
+    }
+
+    if(size_t(floorf(x) + dm.x*(y +  dm.y*z))  < 0 || size_t(ceilf(x) + dm.x*(y +  dm.y*z)) <0){
+        // std::cout<<"Small\n";
+        return 0;
+    }
+    return linearInterpolate(level[size_t(floorf(x) + dm.x*(y +  dm.y*z))], level[size_t(ceilf(x) + dm.x*(y +  dm.y*z))], factor);
+}
+
+float bilinearInterpolate(const std::vector<float>& level, float x, float y, float z, const glm::ivec3& dm){
+    float factor = y - floor(y);
+    float a1 = linearInterpolate(level, x, floorf(y), z, dm);
+    float a2 = linearInterpolate(level, x, ceilf(y), z, dm);
+    return linearInterpolate(a1,a2,factor);
+}
+
+float trilinearInterp(const std::vector<float>& level, float x, float y, float z, const glm::ivec3& dm){
+    float factor = z - floor(z);
+    float a1 = bilinearInterpolate(level, x, y, floorf(z), dm);
+    float a2 = bilinearInterpolate(level, x, y, ceilf(z), dm);
+    return linearInterpolate(a1,a2,factor);
+}
+
+
+
+
+void Renderer::recompute_ambient(){
+    ambOcc_data = {};
+    using clock = std::chrono::high_resolution_clock;
+    auto start = clock::now();
+    std::vector<std::vector<float>> levels = {};
+    glm::ivec3 dm = m_pVolume->dims();
+    for(int l = 0; l <= m_config.level; l ++){
+        std::vector<float> level = {};
+        
+        for(int z = 0; z < dm.z; z++)
+            for(int y = 0; y < dm.y; y++)
+                for(int x = 0; x < dm.x; x++){
+                    
+                    if (l == 0){
+                        
+                        level.push_back(getTFValue(m_pVolume->getSampleInterpolate(glm::vec3(x-0.5,y-0.5,z-0.5))).a);
+                    }else{
+                        int step = fastExponentiation(2,l-1);
+                        glm::vec3 offset = glm::vec3(floorf(-step/2));
+                        if(m_config.normMult != 0.f){
+                            const volume::GradientVoxel &localGradient  = m_pGradientVolume->getGradientInterpolate(glm::vec3(x,y,z));
+                            if(!(localGradient.magnitude == 0 ))
+                                offset = offset - m_config.normMult* float(step) * glm::normalize(localGradient.dir);
+                            
+                        }
+                        float acc = 0;
+                        
+                        //std::cout<<offset.x<<" "<<offset.y<<" "<<offset.z<<std::endl;
+                        int i = 0;
+                        for(int z1 = z; z1 < 2*step+z; z1+=step){
+                            for(int y1 = y ; y1 < 2*step+y; y1+=step){
+                                for(int x1 = x ; x1 < 2*step+x ; x1+=step){
+                                    i+=1;
+                                    if(x1 + offset.x>=dm.x || y1+ offset.y>=dm.y ||  z1+ offset.z>=dm.z  || x1+ offset.x<0 || y1+ offset.y<0 || z1+ offset.z<0){
+                                        acc += 0;
+                                    }else{
+                                        acc += trilinearInterp(levels[l-1], x1+ offset.x, y1+ offset.y, z1+ offset.z, dm);
+                                        // acc += levels[l-1][size_t(x1 + dm.x*(y1 +  dm.y*z1))];
+                                    }
+                                }
+                            }
+                        }
+                        // if(i!=8){
+                        //     std::cout<<i<<std::endl;
+                        // }
+                        acc = acc/8.f;
+                        level.push_back(acc);
+
+                    }
+                    
+                }
+        // if(level.size()!=m_pVolume->dims().x*m_pVolume->dims().y*m_pVolume->dims().z){
+        //     std::cout<<level.size()<<std::endl;
+        // }
+        levels.push_back(level);
+    }
+    
+    //std::cout<<"AA\n";
+    for(int z = 0; z < dm.z; z++)
+            for(int y = 0; y < dm.y; y++)
+                for(int x = 0; x < dm.x; x++){
+                    float ambient = 1;
+                    float prev_avg = 0;
+                    for(int l = 1; l<= m_config.level; l++){
+                        // std::cout<<levels[l].size()<<std::endl;
+                        if(l == 1){
+                            // prev_avg = trilinearInterp(levels, x, y, z, dm, l);
+                            prev_avg = levels[l][size_t(x + dm.x*(y +  dm.y*z))];
+                        }else{
+                            float curr_avg = levels[l][size_t(x + dm.x*(y +  dm.y*z))];
+                            ambient = ambient*(1- (8/7)*(curr_avg - prev_avg/8));
+                            prev_avg = curr_avg;
+                        }
+                    }
+                    ambOcc_data.insert(ambOcc_data.end(),ambient);
+                }
+    auto end = clock::now();
+    std::cout << "Time to compute ambient occlusion: " << std::chrono::duration<double, std::milli>(end - start).count() << "ms" << std::endl;
+
 }
 
 // Set a new render config if the user changed the settings.
 void Renderer::setConfig(const RenderConfig& config)
 {
-    
+    if(config.ambientOcclusion && flag){
+        recompute_ambient();
+        flag = false;
+    }
+    if(!config.ambientOcclusion){
+        flag = true;
+    }
     if (config.renderResolution != m_config.renderResolution)
         resizeImage(config.renderResolution);
-
     m_config = config;
+    
 }
 
 // Resize the framebuffer and fill it with black pixels.
@@ -271,9 +395,6 @@ glm::vec3 Renderer::computePhongShading(const glm::vec3& color, const volume::Gr
 glm::vec4 Renderer::traceRayComposite(const Ray& ray, float sampleStep) const
 {
     
-    glm::vec3 bestGuessPos;
-    float bestGuessValue;
-    uint32_t currentIter = 0U;
     glm::vec4 retColour = glm::vec4(0.0f);
     float alpha = 0.f;
     for(float i = ray.tmin; i < ray.tmax; i+= sampleStep){
@@ -282,6 +403,29 @@ glm::vec4 Renderer::traceRayComposite(const Ray& ray, float sampleStep) const
         //Extract the alpha value
         float retAlpha = TFVal.a;
         TFVal.a = 1;
+        
+        if (m_config.volumeShading) {
+                // COMPUTE PHONG SHADING IN HERE
+                glm::vec3 intrmCol(TFVal);
+                const volume::GradientVoxel &localGradient  = m_pGradientVolume->getGradientInterpolate(ray.origin+(i*ray.direction));
+                glm::vec3 viewDirection                     = ray.origin+(i*ray.direction) - m_pCamera->position();
+                glm::vec3 phongRes                          = computePhongShading(intrmCol, localGradient, viewDirection, viewDirection);
+                
+                TFVal = glm::vec4(phongRes, 1.0f);
+        } else if (m_config.ambientOcclusion){
+            glm::vec3 intrmCol(TFVal);
+            glm::vec3 pos = ray.origin+(i*ray.direction);
+            // pos.x = floorf(pos.x);
+            // pos.y = floorf(pos.y);
+            // pos.z = floorf(pos.z);
+            
+            float amb = trilinearInterp(ambOcc_data, pos.x, pos.y, pos.z, m_pVolume->dims());
+            // float amb = ambOcc_data[size_t(pos.x + m_pVolume->dims().x*(pos.y +  m_pVolume->dims().y*pos.z))];
+            // std::cout<<amb<<std::endl;
+            TFVal = glm::vec4(intrmCol*amb, 1.0f);
+            
+
+        }
         //Create the R*A, B*A, G*A, A vector
         TFVal = retAlpha * TFVal;
         //Accumulate
@@ -293,10 +437,7 @@ glm::vec4 Renderer::traceRayComposite(const Ray& ray, float sampleStep) const
             break;
         }
     }
-    //Shade
-    if (m_config.ambientOcclusion){
-
-    }
+   
     return retColour;
 }
 
