@@ -319,7 +319,22 @@ glm::vec4 Renderer::getTFValue(float val) const
 // Use the getTF2DOpacity function that you implemented to compute the opacity according to the 2D transfer function.
 glm::vec4 Renderer::traceRayTF2D(const Ray& ray, float sampleStep) const
 {
-    return glm::vec4(0.0f);
+    float alpha = 0;
+
+    glm::vec3 samplePos = ray.origin + ray.tmin * ray.direction;
+    const glm::vec3 increment = sampleStep * ray.direction;
+    for (float t = ray.tmin; t <= ray.tmax; t += sampleStep, samplePos += increment) {
+        
+        float curOpacity = getTF2DOpacity(
+            m_pVolume->getSampleInterpolate(samplePos),
+            m_pGradientVolume->getGradientInterpolate(samplePos).magnitude);
+
+        alpha = glm::max(alpha, curOpacity);
+    }
+
+    auto color = m_config.TF2DColor;
+    color = color * alpha;
+    return color;
 }
 
 // ======= TODO: IMPLEMENT ========
@@ -331,7 +346,16 @@ glm::vec4 Renderer::traceRayTF2D(const Ray& ray, float sampleStep) const
 // The 2D transfer function settings can be accessed through m_config.TF2DIntensity and m_config.TF2DRadius.
 float Renderer::getTF2DOpacity(float intensity, float gradientMagnitude) const
 {
-    return 0.0f;
+    // intensity is x, gradientMagnitude is y
+
+    float normalizedHeight = (gradientMagnitude - m_pGradientVolume->minMagnitude()) 
+                           / (m_pGradientVolume->maxMagnitude() - m_pGradientVolume->minMagnitude());
+
+    float distToMiddle = glm::abs(intensity - m_config.TF2DIntensity);
+
+    float ratioToMiddle = glm::clamp(distToMiddle / (m_config.TF2DRadius * normalizedHeight), 0.0f, 1.0f);
+    
+    return 1 - ratioToMiddle;
 }
 
 // This function computes if a ray intersects with the axis-aligned bounding box around the volume.
