@@ -1,10 +1,13 @@
 # IDE folders
 .vscode
 .vs
+.idea
 
 # Build and output
 build
 out
+cmake-build-debug
+cmake-build-release
 
 # Configs
 imgui.ini
