@@ -312,22 +312,22 @@ glm::vec4 Renderer::getTFValue(float val) const
 // Use the getTF2DOpacity function that you implemented to compute the opacity according to the 2D transfer function.
 glm::vec4 Renderer::traceRayTF2D(const Ray& ray, float sampleStep) const
 {
-    float alpha = 0;
+    std::optional<glm::vec4> bestColor = std::nullopt;
 
     glm::vec3 samplePos = ray.origin + ray.tmin * ray.direction;
     const glm::vec3 increment = sampleStep * ray.direction;
     for (float t = ray.tmin; t <= ray.tmax; t += sampleStep, samplePos += increment) {
         
-        float curOpacity = getTF2DOpacity(
+        glm::vec4 color = getTF2DValue(
             m_pVolume->getSampleInterpolate(samplePos),
             m_pGradientVolume->getGradientInterpolate(samplePos).magnitude);
 
-        alpha = glm::max(alpha, curOpacity);
+        if (!bestColor.has_value() || color.a > bestColor->a) {
+            bestColor = color;
+        }
     }
 
-    auto color = m_config.TF2DColor;
-    color = color * alpha;
-    return color;
+    return bestColor.value();
 }
 
 // ======= TODO: IMPLEMENT ========
@@ -337,18 +337,25 @@ glm::vec4 Renderer::traceRayTF2D(const Ray& ray, float sampleStep) const
 // Otherwise: return 0.0f
 //
 // The 2D transfer function settings can be accessed through m_config.TF2DIntensity and m_config.TF2DRadius.
-float Renderer::getTF2DOpacity(float intensity, float gradientMagnitude) const
+glm::vec4 Renderer::getTF2DValue(float intensity, float gradientMagnitude) const
 {
     // intensity is x, gradientMagnitude is y
 
-    float normalizedHeight = (gradientMagnitude - m_pGradientVolume->minMagnitude()) 
-                           / (m_pGradientVolume->maxMagnitude() - m_pGradientVolume->minMagnitude());
+    std::optional<glm::vec4> bestColor = std::nullopt;
 
-    float distToMiddle = glm::abs(intensity - m_config.TF2DIntensity);
+    for (TF2DTriangle triangle : m_config.TF2DTriangles) {
+        float distToMiddle = glm::abs(intensity - triangle.intensityBase.x);
+        float normHeight = glm::clamp((gradientMagnitude - triangle.intensityBase.y) / triangle.magnitudeHeight, 0.0f, 1.0f);
 
-    float ratioToMiddle = glm::clamp(distToMiddle / (m_config.TF2DRadius * normalizedHeight), 0.0f, 1.0f);
-    
-    return 1 - ratioToMiddle;
+        float ratioToMiddle = glm::clamp(distToMiddle / (triangle.radius * normHeight), 0.0f, 1.0f);
+
+        if (!bestColor.has_value() || 1 - ratioToMiddle > bestColor->a) {
+            bestColor = triangle.color;
+            bestColor->a = 1 - ratioToMiddle;
+        }
+    }
+
+    return bestColor.value();
 }
 
 // This function computes if a ray intersects with the axis-aligned bounding box around the volume.

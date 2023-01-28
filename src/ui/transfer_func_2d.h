@@ -8,6 +8,12 @@
 
 namespace ui {
 
+struct TF2DTriangle {
+    // base, left, right
+    std::array<glm::vec2, 3> points;
+    glm::vec4 color;
+};
+
 class TransferFunction2DWidget {
 public:
     TransferFunction2DWidget(const volume::Volume& volume, const volume::GradientVolume& gradient);
@@ -16,11 +22,20 @@ public:
     void updateRenderConfig(render::RenderConfig& renderConfig);
 
 private:
-    float m_intensity, m_maxIntensity;
-    float m_radius;
-    glm::vec4 m_color;
+    glm::vec2 normPoint(glm::vec2& point) const;
 
-    int m_interactingPoint;
+private:
+    std::vector<TF2DTriangle> m_triangles;
+
+    float m_maxIntensity, m_maxMagnitude;
+//    float m_radius;
+//    glm::vec4 m_color;
+
+    std::optional<std::tuple<TF2DTriangle, int>> m_interactingTriangle;
+
+    TF2DTriangle m_selectedTriangle;
+
     GLuint m_histogramImg;
+
 };
 }

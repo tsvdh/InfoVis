@@ -3,8 +3,17 @@
 #include <glm/vec2.hpp>
 #include <glm/vec4.hpp>
 #include <cstring> // memcmp  // macOS change TH
+#include <vector>
+
 
 namespace render {
+
+struct TF2DTriangle {
+    glm::vec2 intensityBase;
+    float magnitudeHeight;
+    float radius;
+    glm::vec4 color;
+};
 
 enum class RenderMode {
     RenderSlicer,
@@ -29,9 +38,13 @@ struct RenderConfig {
     float tfColorMapIndexRange;
 
     // 2D transfer function.
-    float TF2DIntensity;
-    float TF2DRadius;
-    glm::vec4 TF2DColor;
+    std::vector<TF2DTriangle> TF2DTriangles;
+
+//    float TF2DIntensity;
+//    float TF2DRadius;
+//    glm::vec4 TF2DColor;
+
+
 };
 
 // NOTE(Mathijs): should be replaced by C++20 three-way operator (aka spaceship operator) if we require C++ 20 support from Linux users (GCC10 / Clang10).

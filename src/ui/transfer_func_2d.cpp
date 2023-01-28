@@ -21,13 +21,16 @@ static constexpr float pointRadius = 8.0f;
 static constexpr glm::ivec2 widgetSize { 475, 300 };
 
 TransferFunction2DWidget::TransferFunction2DWidget(const volume::Volume& volume, const volume::GradientVolume& gradient)
-    : m_intensity(68.0f)
+    : m_triangles()
     , m_maxIntensity(volume.maximum())
-    , m_radius(38.0f)
-    , m_color(0.0f, 0.8f, 0.6f, 0.3f)
-    , m_interactingPoint(-1)
+    , m_maxMagnitude(gradient.maxMagnitude())
+    , m_interactingTriangle(std::nullopt)
+    , m_selectedTriangle()
     , m_histogramImg(0)
 {
+    m_triangles.push_back({{glm::vec2(70.0f, 20.0f), {65.0f, 25.0f}, {75.0f, 25.0f}}, {0.0f, 0.8f, 0.6f, 0.3f}});
+    m_selectedTriangle = m_triangles[0];
+
     const glm::ivec2 res = glm::ivec2(volume.maximum(), gradient.maxMagnitude() + 1);
     const auto imgData = createHistogramImage(volume, gradient, res);
 
@@ -47,7 +50,7 @@ void TransferFunction2DWidget::draw()
     const ImGuiIO& io = ImGui::GetIO();
 
     ImGui::Text("2D Transfer Function");
-    ImGui::Text("Click and drag points to alter the m_radius or m_intensity");
+    ImGui::Text("Click and drag points to alter the shape of a triangle, or click to add a new triangle.");
 
     // Histogram image is positioned to the right of the content region.
     const glm::vec2 canvasSize { widgetSize.x, widgetSize.y - 20 };
@@ -88,7 +91,7 @@ void TransferFunction2DWidget::draw()
 
     // Detect and handle mouse interaction.
     if (!io.MouseDown[0] && !io.MouseDown[1]) {
-        m_interactingPoint = -1;
+        m_interactingTriangle = std::nullopt;
     }
 
     // Place an invisible button on top of the histogram. IsItemHovering returns whether the cursor is
@@ -105,13 +108,24 @@ void TransferFunction2DWidget::draw()
         std::min(std::max(io.MousePos.y, bbMin.y), bbMax.y)
     };
 
-    const float normalizedIntensity = m_intensity / m_maxIntensity;
-    const float normalizedRadius = m_radius / m_maxIntensity;
-    const std::array points = {
-        glm::vec2(normalizedIntensity, 0.f),
-        glm::vec2(normalizedIntensity - normalizedRadius, 1.f),
-        glm::vec2(normalizedIntensity + normalizedRadius, 1.f)
-    };
+    // Make normalized version of normTriangles
+    std::vector<TF2DTriangle> normTriangles = {};
+    for (TF2DTriangle &triangle : m_triangles) {
+
+        normTriangles.push_back(triangle);
+        for (glm::vec2 &point : normTriangles.back().points) {
+            point.x /= m_maxIntensity;
+            point.y /= m_maxMagnitude;
+        }
+    }
+
+//    const float normalizedIntensity = m_intensity / m_maxIntensity;
+//    const float normalizedRadius = m_radius / m_maxIntensity;
+//    const std::array points = {
+//        glm::vec2(normalizedIntensity, 0.f),
+//        glm::vec2(normalizedIntensity - normalizedRadius, 1.f),
+//        glm::vec2(normalizedIntensity + normalizedRadius, 1.f)
+//    };
 
     const glm::vec2 viewScale { canvasSize.x, -canvasSize.y };
     const glm::vec2 viewOffset { canvasPos.x, canvasPos.y + canvasSize.y };
@@ -120,50 +134,114 @@ void TransferFunction2DWidget::draw()
 
         if (io.MouseDown[0]) {
             // Left mouse button is down.
-            if (m_interactingPoint == -1) {
+            if (!m_interactingTriangle.has_value()) {
                 // No point is currently selected; check if the user clicked any of the points.
-                for (size_t i = 0; i < points.size(); i++) {
-                    const glm::vec2 pointPosition = points[i] * viewScale + viewOffset;
-                    const glm::vec2 diff = pointPosition - clippedMousePos;
-                    float distanceSquared = glm::dot(diff, diff);
-                    if (distanceSquared < pointRadius * pointRadius) {
-                        m_interactingPoint = int(i);
-                        break;
+                for (int i = 0; i < m_triangles.size(); ++i) {
+                    for (int j = 0; j < m_triangles[i].points.size(); ++j) {
+
+                        const glm::vec2 pointPosition = normTriangles[i].points[j] * viewScale + viewOffset;
+                        const glm::vec2 diff = pointPosition - clippedMousePos;
+
+                        float distanceSquared = glm::dot(diff, diff);
+                        if (distanceSquared < pointRadius * pointRadius) {
+                            m_interactingTriangle = {m_triangles[i], j};
+                        }
                     }
                 }
+
+//                for (size_t i = 0; i < points.size(); i++) {
+//                    const glm::vec2 pointPosition = points[i] * viewScale + viewOffset;
+//                    const glm::vec2 diff = pointPosition - clippedMousePos;
+//                    float distanceSquared = glm::dot(diff, diff);
+//                    if (distanceSquared < pointRadius * pointRadius) {
+//                        m_interactingPoint = int(i);
+//                        break;
+//                    }
+//                }
             }
 
-            if (m_interactingPoint != -1) {
+            if (m_interactingTriangle.has_value()) {
                 // A point was already selected.
-                switch (m_interactingPoint) {
+                TF2DTriangle triangle = std::get<0>(m_interactingTriangle.value());
+                auto base = triangle.points[0];
+                auto left = triangle.points[1];
+                auto right = triangle.points[2];
+
+                float newIntensity = mousePos.x * m_maxIntensity;
+                float newMagnitude = mousePos.y * m_maxMagnitude;
+
+                switch (std::get<1>(m_interactingTriangle.value())) {
                 case 0: {
-                    // m_intensity point
-                    m_intensity = mousePos.x * m_maxIntensity;
+                    // base
+                    left.x = newIntensity + (left.x - base.x);
+                    left.y = newMagnitude + (left.y - base.y);
+
+                    right.x = newIntensity + (right.x - base.x);
+                    right.y = newMagnitude + (right.y - base.y);
+
+                    base.x = newIntensity;
+                    base.y = newMagnitude;
+
+//                    m_intensity = mousePos.x * m_maxIntensity;
                 } break;
                 case 1: {
-                    // left m_radius point
-                    m_radius = std::max(m_intensity - mousePos.x * m_maxIntensity, 1.0f);
+                    // left
+                    left.x = glm::min(newIntensity + (left.x - base.x), base.x);
+                    left.y = glm::max(newMagnitude + (left.y - base.y), base.y);
+
+                    right.x = base.x + (base.x - left.x);
+                    right.y = left.y;
+
+//                    m_radius = std::max(m_intensity - mousePos.x * m_maxIntensity, 1.0f);
                 } break;
                 case 2: {
-                    // right m_radius point
-                    m_radius = std::max(mousePos.x * m_maxIntensity - m_intensity, 1.0f);
+                    // right
+                    right.x = glm::max(newIntensity + (right.x - base.x), base.x);
+                    right.y = glm::max(newMagnitude + (right.y - base.y), base.y);
+
+                    left.x = base.x - (right.x - base.x);
+                    right.y = left.y;
+
+//                    m_radius = std::max(mousePos.x * m_maxIntensity - m_intensity, 1.0f);
                 } break;
                 };
             }
         }
+
+        if (io.MouseDown[1]) {
+            // Right mouse button is down.
+
+        }
     }
 
     // Draw m_intensity and m_radius points.
-    const ImVec2 leftRadiusPointPos = glmToIm(glm::vec2(normalizedIntensity - normalizedRadius, 1.f) * viewScale + viewOffset);
-    const ImVec2 rightRadiusPointPos = glmToIm(glm::vec2(normalizedIntensity + normalizedRadius, 1.f) * viewScale + viewOffset);
-    const ImVec2 intensityPointPos = glmToIm(glm::vec2(normalizedIntensity, 0.f) * viewScale + viewOffset);
+    for (TF2DTriangle triangle : m_triangles) {
+        auto base = triangle.points[0];
+        auto left = triangle.points[1];
+        auto right = triangle.points[2];
 
-    drawList->AddLine(leftRadiusPointPos, intensityPointPos, 0xFFFFFFFF);
-    drawList->AddLine(intensityPointPos, rightRadiusPointPos, 0xFFFFFFFF);
+        const ImVec2 basePoint = glmToIm(normPoint(base) * viewScale + viewOffset);
+        const ImVec2 leftPoint = glmToIm(normPoint(left) * viewScale + viewOffset);
+        const ImVec2 rightPoint = glmToIm(normPoint(right) * viewScale + viewOffset);
 
-    drawList->AddCircleFilled(leftRadiusPointPos, pointRadius, 0xFFFFFFFF);
-    drawList->AddCircleFilled(intensityPointPos, pointRadius, 0xFFFFFFFF);
-    drawList->AddCircleFilled(rightRadiusPointPos, pointRadius, 0xFFFFFFFF);
+        drawList->AddLine(leftPoint, basePoint, 0xFFFFFFFF);
+        drawList->AddLine(basePoint, rightPoint, 0xFFFFFFFF);
+
+        drawList->AddCircleFilled(leftPoint, pointRadius, 0xFFFFFFFF);
+        drawList->AddCircleFilled(basePoint, pointRadius, 0xFFFFFFFF);
+        drawList->AddCircleFilled(rightPoint, pointRadius, 0xFFFFFFFF);
+    }
+
+//    const ImVec2 leftRadiusPointPos = glmToIm(glm::vec2(normalizedIntensity - normalizedRadius, 1.f) * viewScale + viewOffset);
+//    const ImVec2 rightRadiusPointPos = glmToIm(glm::vec2(normalizedIntensity + normalizedRadius, 1.f) * viewScale + viewOffset);
+//    const ImVec2 intensityPointPos = glmToIm(glm::vec2(normalizedIntensity, 0.f) * viewScale + viewOffset);
+//
+//    drawList->AddLine(leftRadiusPointPos, intensityPointPos, 0xFFFFFFFF);
+//    drawList->AddLine(intensityPointPos, rightRadiusPointPos, 0xFFFFFFFF);
+//
+//    drawList->AddCircleFilled(leftRadiusPointPos, pointRadius, 0xFFFFFFFF);
+//    drawList->AddCircleFilled(intensityPointPos, pointRadius, 0xFFFFFFFF);
+//    drawList->AddCircleFilled(rightRadiusPointPos, pointRadius, 0xFFFFFFFF);
 
     drawList->PopClipRect();
 
@@ -172,33 +250,51 @@ void TransferFunction2DWidget::draw()
     ImGui::Text("Voxel Value");
 
     // Draw text boxes and color picker.
-    ImGui::NewLine();
-    int inputFill = 0;
-    ImGui::PushItemWidth(0.1f); // These 3 coming lines show nothing but vertically align the text of the intensity and radius boxes
-    ImGui::InputScalar("", ImGuiDataType_U32, &inputFill);
-    ImGui::SameLine();
-    ImGui::Text("Intensity: ");
-    ImGui::SameLine();
-    ImGui::PushItemWidth(50.f);
-    ImGui::InputScalar("", ImGuiDataType_Float, &m_intensity, NULL, NULL, "%.2f", ImGuiInputTextFlags_ReadOnly);
-    ImGui::SameLine();
-    ImGui::Text("Radius: ");
-    ImGui::SameLine();
-    ImGui::PushItemWidth(50.f);
-    ImGui::InputScalar("", ImGuiDataType_Float, &m_radius, NULL, NULL, "%.2f", ImGuiInputTextFlags_ReadOnly);
-
-    ImGui::NewLine();
-    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + xOffset / 2);
-    ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() * 0.4f);
-    ImGui::ColorPicker4("Color", glm::value_ptr(m_color));
+//    ImGui::NewLine();
+//    int inputFill = 0;
+//    ImGui::PushItemWidth(0.1f); // These 3 coming lines show nothing but vertically align the text of the intensity and radius boxes
+//    ImGui::InputScalar("", ImGuiDataType_U32, &inputFill);
+//    ImGui::SameLine();
+//    ImGui::Text("Intensity: ");
+//    ImGui::SameLine();
+//    ImGui::PushItemWidth(50.f);
+//    ImGui::InputScalar("", ImGuiDataType_Float, &m_intensity, NULL, NULL, "%.2f", ImGuiInputTextFlags_ReadOnly);
+//    ImGui::SameLine();
+//    ImGui::Text("Radius: ");
+//    ImGui::SameLine();
+//    ImGui::PushItemWidth(50.f);
+//    ImGui::InputScalar("", ImGuiDataType_Float, &m_radius, NULL, NULL, "%.2f", ImGuiInputTextFlags_ReadOnly);
+//
+//    ImGui::NewLine();
+//    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + xOffset / 2);
+//    ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() * 0.4f);
+//    ImGui::ColorPicker4("Color", glm::value_ptr(m_color));
 }
 
 void TransferFunction2DWidget::updateRenderConfig(render::RenderConfig& renderConfig)
 {
-    renderConfig.TF2DIntensity = m_intensity;
-    renderConfig.TF2DRadius = m_radius;
-    renderConfig.TF2DColor = m_color;
+    renderConfig.TF2DTriangles.clear();
+
+    for (TF2DTriangle triangle : m_triangles) {
+        auto base = triangle.points[0];
+
+        renderConfig.TF2DTriangles.push_back({
+            base,
+            triangle.points[1].y - base.y,
+            triangle.points[2].x - base.x,
+            triangle.color
+        });
+    }
+
+//    renderConfig.TF2DIntensity = m_intensity;
+//    renderConfig.TF2DRadius = m_radius;
+//    renderConfig.TF2DColor = m_color;
 }
+}
+
+glm::vec2 ui::TransferFunction2DWidget::normPoint(glm::vec2& point) const
+{
+    return {point.x / m_maxIntensity, point.y / m_maxMagnitude};
 }
 
 static ImVec2 glmToIm(const glm::vec2& v)
