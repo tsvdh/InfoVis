@@ -13,6 +13,13 @@ struct TF2DTriangle {
     float magnitudeHeight;
     float radius;
     glm::vec4 color;
+
+    bool operator==(const TF2DTriangle other) const & {
+        return this->intensityBase == other.intensityBase
+            && this->magnitudeHeight == other.magnitudeHeight
+            && this->radius == other.radius
+            && this->color == other.color;
+    }
 };
 
 enum class RenderMode {

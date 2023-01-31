@@ -28,7 +28,7 @@ TransferFunction2DWidget::TransferFunction2DWidget(const volume::Volume& volume,
     , m_selectedTriangle()
     , m_histogramImg(0)
 {
-    m_triangles.push_back({{glm::vec2(70.0f, 20.0f), {65.0f, 25.0f}, {75.0f, 25.0f}}, {0.0f, 0.8f, 0.6f, 0.3f}});
+    m_triangles.push_back({{glm::vec2(70.0f, 10.0f), {50.0f, 30.0f}, {90.0f, 30.0f}}, {0.0f, 0.8f, 0.6f, 0.3f}});
     m_selectedTriangle = m_triangles[0];
 
     const glm::ivec2 res = glm::ivec2(volume.maximum(), gradient.maxMagnitude() + 1);
@@ -226,6 +226,7 @@ void TransferFunction2DWidget::draw()
 
         drawList->AddLine(leftPoint, basePoint, 0xFFFFFFFF);
         drawList->AddLine(basePoint, rightPoint, 0xFFFFFFFF);
+        drawList->AddLine(rightPoint, leftPoint, 0xFFFFFFFF);
 
         drawList->AddCircleFilled(leftPoint, pointRadius, 0xFFFFFFFF);
         drawList->AddCircleFilled(basePoint, pointRadius, 0xFFFFFFFF);
@@ -273,17 +274,21 @@ void TransferFunction2DWidget::draw()
 
 void TransferFunction2DWidget::updateRenderConfig(render::RenderConfig& renderConfig)
 {
-    renderConfig.TF2DTriangles.clear();
+    std::vector<render::TF2DTriangle> newTriangles = {};
 
     for (TF2DTriangle triangle : m_triangles) {
         auto base = triangle.points[0];
 
-        renderConfig.TF2DTriangles.push_back({
+        newTriangles.push_back({
             base,
             triangle.points[1].y - base.y,
             triangle.points[2].x - base.x,
             triangle.color
         });
+    }
+
+    if (newTriangles != renderConfig.TF2DTriangles) {
+        renderConfig.TF2DTriangles = newTriangles;
     }
 
 //    renderConfig.TF2DIntensity = m_intensity;
