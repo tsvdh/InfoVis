@@ -162,10 +162,10 @@ void TransferFunction2DWidget::draw()
 
             if (m_interactingTriangle.has_value()) {
                 // A point was already selected.
-                TF2DTriangle triangle = std::get<0>(m_interactingTriangle.value());
-                auto base = triangle.points[0];
-                auto left = triangle.points[1];
-                auto right = triangle.points[2];
+                TF2DTriangle& triangle = std::get<0>(m_interactingTriangle.value());
+                auto &base = triangle.points[0];
+                auto &left = triangle.points[1];
+                auto &right = triangle.points[2];
 
                 float newIntensity = mousePos.x * m_maxIntensity;
                 float newMagnitude = mousePos.y * m_maxMagnitude;
@@ -186,8 +186,8 @@ void TransferFunction2DWidget::draw()
                 } break;
                 case 1: {
                     // left
-                    left.x = glm::min(newIntensity + (left.x - base.x), base.x);
-                    left.y = glm::max(newMagnitude + (left.y - base.y), base.y);
+                    left.x = glm::min(base.x, newIntensity);
+                    left.y = glm::max(newMagnitude, base.y);
 
                     right.x = base.x + (base.x - left.x);
                     right.y = left.y;
@@ -196,11 +196,11 @@ void TransferFunction2DWidget::draw()
                 } break;
                 case 2: {
                     // right
-                    right.x = glm::max(newIntensity + (right.x - base.x), base.x);
-                    right.y = glm::max(newMagnitude + (right.y - base.y), base.y);
+                    right.x = glm::max(base.x, newIntensity);
+                    right.y = glm::max(newMagnitude, base.y);
 
                     left.x = base.x - (right.x - base.x);
-                    right.y = left.y;
+                    left.y = right.y;
 
 //                    m_radius = std::max(mousePos.x * m_maxIntensity - m_intensity, 1.0f);
                 } break;
