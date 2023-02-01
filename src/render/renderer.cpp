@@ -327,7 +327,7 @@ glm::vec4 Renderer::traceRayTF2D(const Ray& ray, float sampleStep) const
         }
     }
 
-    return bestColor.value();
+    return bestColor.value() * bestColor->a;
 }
 
 // ======= TODO: IMPLEMENT ========
@@ -345,7 +345,13 @@ glm::vec4 Renderer::getTF2DValue(float intensity, float gradientMagnitude) const
 
     for (TF2DTriangle triangle : m_config.TF2DTriangles) {
         float distToMiddle = glm::abs(intensity - triangle.intensityBase.x);
-        float normHeight = glm::clamp((gradientMagnitude - triangle.intensityBase.y) / triangle.magnitudeHeight, 0.0f, 1.0f);
+
+        float heightToBase = gradientMagnitude - triangle.intensityBase.y;
+        float normHeight;
+        if (heightToBase > triangle.magnitudeHeight)
+            normHeight = 0;
+        else
+            normHeight = glm::clamp(heightToBase / triangle.magnitudeHeight, 0.0f, 1.0f);
 
         float ratioToMiddle = glm::clamp(distToMiddle / (triangle.radius * normHeight), 0.0f, 1.0f);
 
