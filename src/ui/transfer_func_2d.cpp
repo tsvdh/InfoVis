@@ -28,7 +28,7 @@ TransferFunction2DWidget::TransferFunction2DWidget(const volume::Volume& volume,
     , m_selectedTriangle(0)
     , m_histogramImg(0)
 {
-    m_triangles.push_back({{glm::vec2(90.0f, 10.0f), {30.0f, 100.0f}, {150.0f, 100.0f}}, {0.0f, 0.8f, 0.6f, 0.3f}});
+    m_triangles.push_back({{glm::vec2(90.0f, 30.0f), {60.0f, 70.0f}, {120.0f, 70.0f}}, {0.0f, 0.8f, 0.6f, 0.3f}});
 
     const glm::ivec2 res = glm::ivec2(volume.maximum(), gradient.maxMagnitude() + 1);
     const auto imgData = createHistogramImage(volume, gradient, res);
@@ -183,9 +183,9 @@ void TransferFunction2DWidget::draw()
                 m_selectedTriangle = (int)m_triangles.size();
 
                 m_triangles.push_back({{glm::vec2(newIntensity, newMagnitude),
-                                        {newIntensity - 50, newMagnitude + 50},
-                                        {newIntensity + 50, newMagnitude + 50}},
-                                       {1, 1, 1, 1}});
+                                        {newIntensity - 30, newMagnitude + 40},
+                                        {newIntensity + 30, newMagnitude + 40}},
+                                       {1, 1, 1, 0.5}});
             }
         }
 

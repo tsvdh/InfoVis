@@ -307,36 +307,35 @@ glm::vec4 Renderer::getTFValue(float val) const
     return m_config.tfColorMap[i];
 }
 
-// ======= TODO: IMPLEMENT ========
-// In this function, implement 2D transfer function raycasting.
-// Use the getTF2DOpacity function that you implemented to compute the opacity according to the 2D transfer function.
+// Adapted ray tracing function, composites the colors from the transfer function like the 1D method
 glm::vec4 Renderer::traceRayTF2D(const Ray& ray, float sampleStep) const
 {
-    std::optional<glm::vec4> bestColor = std::nullopt;
+    glm::vec4 accumulatedColor = {0, 0, 0, 0};
+    float accumulatedAlpha = 0;
 
     glm::vec3 samplePos = ray.origin + ray.tmin * ray.direction;
     const glm::vec3 increment = sampleStep * ray.direction;
     for (float t = ray.tmin; t <= ray.tmax; t += sampleStep, samplePos += increment) {
-        
+
+        // front-to-back compositing
+
         glm::vec4 color = getTF2DValue(
             m_pVolume->getSampleInterpolate(samplePos),
             m_pGradientVolume->getGradientInterpolate(samplePos).magnitude);
 
-        if (!bestColor.has_value() || color.a > bestColor->a) {
-            bestColor = color;
-        }
+        accumulatedColor += (1 - accumulatedAlpha) * color;
+        accumulatedAlpha += (1 - accumulatedAlpha) * color.a;
+
+        if (accumulatedAlpha >= 0.95)
+            break;
     }
 
-    return bestColor.value() * bestColor->a;
+    accumulatedColor.a = accumulatedAlpha;
+
+    return accumulatedColor;
 }
 
-// ======= TODO: IMPLEMENT ========
-// This function should return an opacity value for the given intensity and gradient according to the 2D transfer function.
-// Calculate whether the values are within the radius/intensity triangle defined in the 2D transfer function widget.
-// If so: return a tent weighting as described in the assignment
-// Otherwise: return 0.0f
-//
-// The 2D transfer function settings can be accessed through m_config.TF2DIntensity and m_config.TF2DRadius.
+// Returns the associated color multiplied with the alpha
 glm::vec4 Renderer::getTF2DValue(float intensity, float gradientMagnitude) const
 {
     // intensity is x, gradientMagnitude is y
@@ -357,11 +356,11 @@ glm::vec4 Renderer::getTF2DValue(float intensity, float gradientMagnitude) const
 
         if (!bestColor.has_value() || 1 - ratioToMiddle > bestColor->a) {
             bestColor = triangle.color;
-            bestColor->a = 1 - ratioToMiddle;
+            bestColor->a *= 1 - ratioToMiddle;
         }
     }
 
-    return bestColor.value();
+    return bestColor.value() * bestColor->a;
 }
 
 // This function computes if a ray intersects with the axis-aligned bounding box around the volume.
