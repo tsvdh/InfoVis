@@ -31,9 +31,9 @@ private:
 //    float m_radius;
 //    glm::vec4 m_color;
 
-    std::optional<std::tuple<TF2DTriangle&, int>> m_interactingTriangle;
+    std::optional<std::tuple<int, int>> m_interactingTriangle;
 
-    TF2DTriangle m_selectedTriangle;
+    std::optional<int> m_selectedTriangle;
 
     GLuint m_histogramImg;
 
