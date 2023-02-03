@@ -376,9 +376,40 @@ glm::vec3 Renderer::computeShading(const glm::vec3& color, const volume::Gradien
 // ======= TODO: IMPLEMENT ========
 // In this function, implement 1D transfer function raycasting.
 // Use getTFValue to compute the color for a given volume value according to the 1D transfer function.
-glm::vec4 Renderer::traceRayComposite(const Ray& ray, float sampleStep) const
-{
-    return glm::vec4(0.0f);
+glm::vec4 Renderer::traceRayComposite(const Ray& ray, float sampleStep) const {
+    glm::vec4 retColour         = glm::vec4(0.0f);
+    float alpha                 = 0.0f;
+    glm::vec3 samplePos         = ray.origin + (ray.tmin * ray.direction);
+    const glm::vec3 increment   = sampleStep * ray.direction;
+    for(float t = ray.tmin; t <= ray.tmax; t += sampleStep, samplePos += increment) {
+        float intValue      = m_pVolume->getSampleInterpolate(samplePos);
+        glm::vec4 TFVal     = getTFValue(intValue);
+        
+        // Extract the alpha value
+        float retAlpha  = TFVal.a;
+        TFVal.a         = 1.0f;
+        
+        // Phong shading for each sample point
+        if (m_config.volumeShading) {
+                glm::vec3 intrmCol(TFVal);
+                const volume::GradientVoxel &localGradient  = m_pGradientVolume->getGradientInterpolate(samplePos);
+                glm::vec3 viewDirection                     = samplePos - m_pCamera->position();
+                glm::vec3 phongRes                          = computePhongShading(intrmCol, localGradient, viewDirection, viewDirection);
+                TFVal                                       = glm::vec4(phongRes, 1.0f);
+        } 
+
+        // Create the R*A, B*A, G*A, A vector
+        TFVal = retAlpha * TFVal;
+        
+        // Accumulate
+        retColour   += (1.0f - alpha) * TFVal;
+        alpha       += (1.0f - alpha) * retAlpha;
+
+        // EARLY TERMINATION
+        if (alpha >= 1.0f) { break; }
+    }
+   
+    return retColour;
 }
 
 // ======= DO NOT MODIFY THIS FUNCTION ========
@@ -397,7 +428,22 @@ glm::vec4 Renderer::getTFValue(float val) const
 // Use the getTF2DOpacity function that you implemented to compute the opacity according to the 2D transfer function.
 glm::vec4 Renderer::traceRayTF2D(const Ray& ray, float sampleStep) const
 {
-    return glm::vec4(0.0f);
+    float alpha = 0;
+
+    glm::vec3 samplePos = ray.origin + ray.tmin * ray.direction;
+    const glm::vec3 increment = sampleStep * ray.direction;
+    for (float t = ray.tmin; t <= ray.tmax; t += sampleStep, samplePos += increment) {
+        
+        float curOpacity = getTF2DOpacity(
+            m_pVolume->getSampleInterpolate(samplePos),
+            m_pGradientVolume->getGradientInterpolate(samplePos).magnitude);
+
+        alpha = glm::max(alpha, curOpacity);
+    }
+
+    auto color = m_config.TF2DColor;
+    color = color * alpha;
+    return color;
 }
 
 // ======= TODO: IMPLEMENT ========
@@ -409,7 +455,16 @@ glm::vec4 Renderer::traceRayTF2D(const Ray& ray, float sampleStep) const
 // The 2D transfer function settings can be accessed through m_config.TF2DIntensity and m_config.TF2DRadius.
 float Renderer::getTF2DOpacity(float intensity, float gradientMagnitude) const
 {
-    return 0.0f;
+    // intensity is x, gradientMagnitude is y
+
+    float normalizedHeight = (gradientMagnitude - m_pGradientVolume->minMagnitude()) 
+                           / (m_pGradientVolume->maxMagnitude() - m_pGradientVolume->minMagnitude());
+
+    float distToMiddle = glm::abs(intensity - m_config.TF2DIntensity);
+
+    float ratioToMiddle = glm::clamp(distToMiddle / (m_config.TF2DRadius * normalizedHeight), 0.0f, 1.0f);
+    
+    return 1 - ratioToMiddle;
 }
 
 // This function computes if a ray intersects with the axis-aligned bounding box around the volume.

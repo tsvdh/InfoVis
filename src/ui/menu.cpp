@@ -108,7 +108,7 @@ void Menu::showLoadVolTab()
             for (const auto &file : std::filesystem::directory_iterator(DATA_PATH)) {
                 const std::filesystem::path &fileName = file.path().filename();
                 bool isSelected = fileName.string() == currentFileName;
-                if (ImGui::Selectable(fileName.string().c_str(), isSelected)) { currentFileName = fileName; }
+                if (ImGui::Selectable(fileName.string().c_str(), isSelected)) { currentFileName = fileName.string(); }
                 if (isSelected) { ImGui::SetItemDefaultFocus(); }
             }
             ImGui::EndCombo();
