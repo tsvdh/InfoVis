@@ -49,7 +49,7 @@ void TransferFunction2DWidget::draw()
     const ImGuiIO& io = ImGui::GetIO();
 
     ImGui::Text("2D Transfer Function");
-    ImGui::Text("Click and drag points to alter the shape of a triangle,\nor click to add a new triangle.");
+    ImGui::Text("Click and drag points to alter the shape of a triangle, or left click\nto add a new triangle. Right click on a triangle to remove it.");
 
     // Histogram image is positioned to the right of the content region.
     const glm::vec2 canvasSize { widgetSize.x, widgetSize.y - 20 };
@@ -191,9 +191,11 @@ void TransferFunction2DWidget::draw()
 
         // Right mouse button is down.
         if (io.MouseDown[1] && m_interactingTriangle.has_value()) {
-            m_triangles.pop_back();
-            m_interactingTriangle = std::nullopt;
-            m_selectedTriangle = std::nullopt;
+            if (m_triangles.size() > 1) {
+                m_triangles.erase(m_triangles.begin() + std::get<0>(m_interactingTriangle.value()));
+                m_interactingTriangle = std::nullopt;
+                m_selectedTriangle = std::nullopt;
+            }
         }
     }
 
