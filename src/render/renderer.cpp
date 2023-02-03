@@ -389,14 +389,27 @@ glm::vec4 Renderer::traceRayComposite(const Ray& ray, float sampleStep) const {
         float retAlpha  = TFVal.a;
         TFVal.a         = 1.0f;
         
-        // Phong shading for each sample point
-        if (m_config.volumeShading) {
-                glm::vec3 intrmCol(TFVal);
-                const volume::GradientVoxel &localGradient  = m_pGradientVolume->getGradientInterpolate(samplePos);
-                glm::vec3 viewDirection                     = samplePos - m_pCamera->position();
-                glm::vec3 phongRes                          = computePhongShading(intrmCol, localGradient, viewDirection, viewDirection);
-                TFVal                                       = glm::vec4(phongRes, 1.0f);
-        } 
+        // Shading for each sample point
+        if (m_config.shadingMode != ShadingMode::ShadingNone) { 
+            const volume::GradientVoxel &localGradient  = m_pGradientVolume->getGradientInterpolate(samplePos);
+            glm::vec3 viewDirection                     = samplePos - m_pCamera->position();
+            glm::vec3 finalColor                        = glm::vec3(0.0f);
+
+            // Accumulate lighting from all sources
+            glm::vec3 lightDirection;
+            for (size_t lightIdx = 0; lightIdx < m_config.numLights; lightIdx++) {
+                const PointLight &light =   *(m_config.sceneLights[lightIdx]);
+                lightDirection          =   samplePos - light.pos;
+                finalColor              +=  computeShading(TFVal, localGradient, lightDirection, viewDirection, light.val, light.val, light.val);
+            }
+
+            // Add camera light if enabled
+            if (m_config.includeCameraLight) { finalColor += computeShading(TFVal, localGradient, viewDirection, viewDirection); }
+
+            // Clamp and return
+            finalColor  = glm::clamp(finalColor, glm::vec3(0.0f), glm::vec3(1.0f));
+            TFVal       = glm::vec4(finalColor, 1.0f);
+        }
 
         // Create the R*A, B*A, G*A, A vector
         TFVal = retAlpha * TFVal;
